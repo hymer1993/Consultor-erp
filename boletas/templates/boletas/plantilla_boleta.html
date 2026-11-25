@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boleta de Pago</title>
+    <style>
+        @page { size: letter landscape; margin: 6mm 8mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #e6edf5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 24px;
+            margin: 0;
+        }
+
+        /* ===== VARIABLES DINÁMICAS (solo colores sólidos) ===== */
+        :root {
+            --color-cabecera: {{ color_cabecera }};
+            --color-tabla: {{ color_tabla }};
+            --color-neto: {{ color_neto }};
+            --texto-cabecera: {{ texto_cabecera }};
+            --texto-tabla: {{ texto_tabla }};
+            --texto-neto: {{ texto_neto }};
+        }
+
+        .page {
+            display: flex;
+            gap: 0;
+            background: transparent;
+            max-width: 1150px;
+            width: 100%;
+            box-shadow: 0 30px 60px -20px rgba(0,0,0,0.35);
+            border-radius: 24px;
+            overflow: hidden;
+        }
+
+        .boleta {
+            width: 50%;
+            background: #ffffff;
+            padding: 16px 20px 20px 20px;
+            position: relative;
+        }
+
+        .boleta.left { border-right: 3px dashed #b0c4de; }
+
+        /* ===== CABECERA (Color 1) ===== */
+        .header {
+            display: flex;
+            align-items: center;
+            background: var(--color-cabecera);
+            color: var(--texto-cabecera);
+            padding: 10px 16px;
+            border-radius: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.20);
+            gap: 12px;
+            flex-wrap: nowrap;
+        }
+
+        /* ===== LOGO CUADRADO CON MARCO ===== */
+        .logo {
+            width: 80px;
+            height: 80px;
+            flex-shrink: 0;
+            background: #ffffff;
+            border: 3px solid #ffffff;  /* Marco blanco interior */
+            box-shadow: 0 0 0 2px var(--color-cabecera), 0 2px 8px rgba(0,0,0,0.15); /* Borde exterior del color de cabecera */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding: 0;  /* Sin padding, la imagen ocupa todo */
+        }
+        .logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;  /* La imagen cubre todo el espacio sin deformarse */
+        }
+        .logo .icono {
+            font-size: 38px;
+            color: var(--color-cabecera);
+        }
+
+        .company { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; }
+        .company h1 {
+            margin: 0;
+            font-size: clamp(14px, 1.8vw, 19px);
+            font-weight: 700;
+            line-height: 1.2;
+            word-break: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+        }
+        .company .detalles {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px 14px;
+            margin-top: 2px;
+            font-size: 15px;  /* Tamaño más grande */
+            opacity: 0.85;
+            font-weight: 400;
+        }
+        .company .detalles span { display: inline-flex; align-items: center; gap: 4px; }
+
+        .numero-boleta {
+            text-align: right;
+            flex-shrink: 0;
+            background: rgba(255,255,255,0.12);
+            padding: 4px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .numero-boleta .label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.8px; opacity: 0.7; display: block; }
+        .numero-boleta .folio { font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: 0.5px; }
+
+        /* ===== BADGE (Color 1) ===== */
+        .badge {
+            margin-top: 12px;
+            background: var(--color-cabecera);
+            color: var(--texto-cabecera);
+            text-align: center;
+            padding: 5px 0;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.6px;
+            text-transform: uppercase;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .badge i { margin-right: 6px; }
+        .badge .separador { margin: 0 6px; opacity: 0.5; }
+
+        /* ===== TÍTULO DE DATOS (Color 2) ===== */
+        .card {
+            border: 1px solid #e3eaf2;
+            margin-top: 14px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+        }
+        .card h3 {
+            margin: 0;
+            background: var(--color-tabla);
+            color: var(--texto-tabla);
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            border-bottom: 1px solid #d0d8e0;
+        }
+        .card h3 i { margin-right: 8px; }
+
+        .info {
+            padding: 10px 16px;
+            display: grid;
+            grid-template-columns: 110px 1fr;
+            gap: 4px 8px;
+            font-size: 13px;
+        }
+        .info>div { padding: 2px 0; }
+        .info>div:first-child { font-weight: 600; color: #1e3a5f; }
+        .info>div:last-child { color: #1e2b3c; word-break: break-word; }
+
+        /* ===== TABLA Y TOTALES (Color 2) ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 14px;
+            font-size: 13px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        }
+        th {
+            background: var(--color-tabla);
+            color: var(--texto-tabla);
+            padding: 8px 10px;
+            font-weight: 600;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: left;
+        }
+        th:not(:first-child) { text-align: right; }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #eef3f8;
+            text-align: left;
+        }
+        td:nth-child(2), td:nth-child(4) { text-align: right; }
+        tr:last-child td { border-bottom: none; }
+
+        tr.total td {
+            background: var(--color-tabla);
+            color: var(--texto-tabla);
+            font-weight: 700;
+            border-top: 2px solid #a0b8d0;
+            padding: 10px 10px;
+        }
+
+        /* ===== SUELDO NETO (Color 3) ===== */
+        .neto {
+            margin-top: 16px;
+            background: var(--color-neto);
+            color: var(--texto-neto);
+            border-radius: 14px;
+            text-align: center;
+            padding: 12px 12px 10px 12px;
+            border: 1px solid #b3d0bb;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+        }
+        .neto .label { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; }
+        .neto .monto { font-size: 30px; font-weight: 800; letter-spacing: -0.5px; margin-top: 2px; }
+
+        /* ===== FOOTER ===== */
+        .footer {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-end;
+            gap: 20px;
+            margin-top: 16px;
+            padding-top: 8px;
+            border-top: 1px solid #e3eaf2;
+        }
+        .qr {
+            width: 80px;
+            height: 80px;
+            border: 1px solid #b8c8dd;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #ffffff;
+            padding: 4px;
+        }
+        .qr img { width: 100%; height: 100%; object-fit: contain; }
+
+        .firmas { display: flex; gap: 24px; margin-left: 0; }
+        .firma {
+            width: 140px;
+            text-align: center;
+            font-size: 12px;
+            color: #2c3e50;
+        }
+        .firma .linea {
+            border-top: 1.5px solid #1e3a5f;
+            margin-bottom: 5px;
+            margin-top: 28px;
+            width: 100%;
+        }
+        .firma span { font-weight: 500; }
+
+        @media (max-width: 850px) {
+            .page { flex-direction: column; max-width: 520px; }
+            .boleta { width: 100%; }
+            .boleta.left { border-right: none; border-bottom: 3px dashed #b0c4de; }
+            body { padding: 12px; }
+        }
+
+        @media print {
+            body { background: #fff; padding: 0; }
+            .page { box-shadow: none; border-radius: 0; max-width: 100%; }
+            .boleta { padding: 10px 12px; }
+            .boleta.left { border-right: 3px dashed #aaa; }
+            .header, .badge, .card h3, th, tr.total td, .neto, .qr {
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <!-- COPIA EMPRESA -->
+        <div class="boleta left">
+            <div class="header">
+                <div class="logo">
+                    {% if LOGO %}
+                        <img src="{{ LOGO }}" alt="Logo">
+                    {% else %}
+                        <span class="icono">🏢</span>
+                    {% endif %}
+                </div>
+                <div class="company">
+                    <h1>{{ EMPRESA }}</h1>
+                    <div class="detalles">
+                        <span>📋 NIT: {{ NIT }}</span>
+                        <span>📅 PERIODO: {{ MES }}</span>
+                    </div>
+                </div>
+                <div class="numero-boleta">
+                    <span class="label">Nº</span>
+                    <span class="folio">{{ NRO }}</span>
+                </div>
+            </div>
+            <div class="badge">📄 BOLETA DE PAGO · 📑 COPIA EMPRESA</div>
+            <div class="card">
+                <h3>👤 DATOS DEL TRABAJADOR</h3>
+                <div class="info">
+                    <div>Nombre:</div><div>{{ Nombre }}</div>
+                    <div>CI:</div><div>{{ CI }}</div>
+                    <div>Cargo:</div><div>{{ Cargo }}</div>
+                    <div>Ingreso:</div><div>{{ Fecha_Ingreso }}</div>
+                    <div>Días:</div><div>{{ Dias_Trabajados }}</div>
+                </div>
+            </div>
+            <table>
+                <thead><tr><th>INGRESOS</th><th>Bs.</th><th>EGRESOS</th><th>Bs.</th></tr></thead>
+                <tbody>
+                    <tr><td>Haber Básico</td><td>{{ Sueldos_B }}</td><td>AFP</td><td>{{ Afp_lab }}</td></tr>
+                    <tr><td>Bono Antigüedad</td><td>{{ Bono_Ant }}</td><td>RC IVA</td><td>{{ Rc_iva }}</td></tr>
+                    <tr><td>Otros Bonos</td><td>{{ Otros_B }}</td><td>Anticipo</td><td>{{ Anti }}</td></tr>
+                    <tr class="total"><td>Total Ingresos</td><td>{{ Tota_I }}</td><td>Total Egresos</td><td>{{ Total_E }}</td></tr>
+                </tbody>
+            </table>
+            <div class="neto">
+                <div class="label">💳 SUELDO NETO</div>
+                <div class="monto">Bs. {{ Sueldo_N }}</div>
+            </div>
+            <div class="footer">
+                <div class="qr"><img src="{{ QR_IMG }}" alt="QR"></div>
+                <div class="firmas">
+                    <div class="firma"><div class="linea"></div><span>Recibí Conforme</span></div>
+                    <div class="firma"><div class="linea"></div><span>Entregué Conforme</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COPIA TRABAJADOR -->
+        <div class="boleta">
+            <div class="header">
+                <div class="logo">
+                    {% if LOGO %}
+                        <img src="{{ LOGO }}" alt="Logo">
+                    {% else %}
+                        <span class="icono">🏢</span>
+                    {% endif %}
+                </div>
+                <div class="company">
+                    <h1>{{ EMPRESA }}</h1>
+                    <div class="detalles">
+                        <span>📋 NIT: {{ NIT }}</span>
+                        <span>📅 PERIODO: {{ MES }}</span>
+                    </div>
+                </div>
+                <div class="numero-boleta">
+                    <span class="label">Nº</span>
+                    <span class="folio">{{ NRO }}</span>
+                </div>
+            </div>
+            <div class="badge">📄 BOLETA DE PAGO · ✅ COPIA TRABAJADOR</div>
+            <div class="card">
+                <h3>👤 DATOS DEL TRABAJADOR</h3>
+                <div class="info">
+                    <div>Nombre:</div><div>{{ Nombre }}</div>
+                    <div>CI:</div><div>{{ CI }}</div>
+                    <div>Cargo:</div><div>{{ Cargo }}</div>
+                    <div>Ingreso:</div><div>{{ Fecha_Ingreso }}</div>
+                    <div>Días:</div><div>{{ Dias_Trabajados }}</div>
+                </div>
+            </div>
+            <table>
+                <thead><tr><th>INGRESOS</th><th>Bs.</th><th>DESCUENTOS</th><th>Bs.</th></tr></thead>
+                <tbody>
+                    <tr><td>Haber Básico</td><td>{{ Sueldos_B }}</td><td>AFP</td><td>{{ Afp_lab }}</td></tr>
+                    <tr><td>Bono Antigüedad</td><td>{{ Bono_Ant }}</td><td>RC IVA</td><td>{{ Rc_iva }}</td></tr>
+                    <tr><td>Otros Bonos</td><td>{{ Otros_B }}</td><td>Anticipo</td><td>{{ Anti }}</td></tr>
+                    <tr class="total"><td>Total Ingresos</td><td>{{ Tota_I }}</td><td>Total Egresos</td><td>{{ Total_E }}</td></tr>
+                </tbody>
+            </table>
+            <div class="neto">
+                <div class="label">💳 SUELDO NETO</div>
+                <div class="monto">Bs. {{ Sueldo_N }}</div>
+            </div>
+            <div class="footer">
+                <div class="qr"><img src="{{ QR_IMG }}" alt="QR"></div>
+                <div class="firmas">
+                    <div class="firma"><div class="linea"></div><span>Recibí Conforme</span></div>
+                    <div class="firma"><div class="linea"></div><span>Entregué Conforme</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

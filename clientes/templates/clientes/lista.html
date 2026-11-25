@@ -1,0 +1,429 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Clientes{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ================= LAYOUT GENERAL ================= */
+    body { overflow: hidden; } 
+    
+    .split-layout { 
+        display: flex; 
+        height: calc(100vh - 120px); 
+        gap: 5px; 
+        background: #e6edf5; 
+        padding: 5px; 
+        box-sizing: border-box;
+    }
+    
+    /* ================= PANEL IZQUIERDO (280px) ================= */
+    .left-panel { 
+        width: 280px; 
+        min-width: 280px; 
+        background: #fff; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+        height: 100%;
+    }
+    
+    .toolbar { 
+        background: #f0f0f0; 
+        padding: 3px 5px; 
+        border-bottom: 1px solid #a0b0c0; 
+        display: flex; 
+        gap: 4px; 
+        align-items: center; 
+        justify-content: flex-start;
+    }
+    .toolbar-btn { 
+        background: transparent; 
+        border: 1px solid transparent; 
+        padding: 2px 4px; 
+        cursor: pointer; 
+        font-size: 14px; 
+        color: #000; 
+        border-radius: 3px; 
+        text-decoration: none; 
+        line-height: 1; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center;
+    }
+    .toolbar-btn:hover:not(:disabled) { border: 1px solid #a0b0c0; background: #fff; }
+    .toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 10px; padding: 2px 5px; }
+    .list-items { flex-grow: 1; overflow-y: auto; }
+
+    .filter-bar { padding: 3px; background: #f9f9f9; border-bottom: 1px solid #ccc; }
+    .filter-select { width: 100%; padding: 2px; font-size: 11px; border: 1px solid #a0b0c0; border-radius: 2px; outline: none; }
+
+    .list-item { padding: 4px 6px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 11px; }
+    .list-item:hover { background: #f0f4f8; }
+    .list-item.active { background: #cce0ff; border-left: 3px solid #2563eb; }
+    
+    .client-row-1 { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2px; }
+    .client-row-2 { display: flex; justify-content: space-between; align-items: center; }
+    
+    .client-name { color: #1e293b; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; padding-right: 5px; }
+    .client-nit { color: #64748b; font-size: 10px; }
+    .client-estado { padding: 0px 4px; border-radius: 2px; font-size: 9px; font-weight: bold; }
+
+    /* ================= PANEL DERECHO ================= */
+    .right-panel { 
+        flex-grow: 1; 
+        background: #f8f9fa; 
+        border: 1px solid #a0b0c0; 
+        padding: 10px; 
+        height: 100%;
+        overflow-y: auto; 
+    }
+    
+    .titulo-form { margin-top: 0; margin-bottom: 10px; font-size: 14px; font-weight: bold; border-bottom: 2px solid #2563eb; padding-bottom: 5px; }
+
+    /* ================= TABLAS ================= */
+    .contenedor-tabla { background: #fff; border: 1px solid #ccc; border-radius: 3px; margin-bottom: 8px; overflow: hidden; }
+    
+    .tabla-detalle { width: 100%; border-collapse: collapse; }
+    .tabla-detalle td { padding: 2px 6px; font-size: 11px; border: 1px solid #e5e7eb; height: 26px; vertical-align: middle; }
+    
+    /* EL TRUCO: Ancho automático al mínimo (1%) y sin saltos de línea */
+    .tabla-detalle td.lbl { 
+        width: 12%;               /* Fuerza a encogerse al tamaño del texto */
+        white-space: nowrap;     /* Evita que el texto se vaya a la siguiente línea */
+        text-align: right;       /* Alinea el texto a la derecha, pegado al valor */
+        padding-right: 10px;
+        padding-left: 5px;
+        font-weight: bold; 
+        color: #4b5563; 
+        background-color: #f9fafb; 
+    }
+    
+    /* El valor toma el 49% (casi la mitad de la tabla) para tener mucho espacio */
+    .tabla-detalle td.val { 
+        width: 35%; 
+        text-align: left; 
+        padding-left: 10px;
+        color: #111827; 
+        background-color: #ffffff; 
+    }
+    
+    /* Inputs en la vista de edición */
+    .tabla-detalle input[type="text"], 
+    .tabla-detalle input[type="email"], 
+    .tabla-detalle input[type="password"],
+    .tabla-detalle input[type="number"], 
+    .tabla-detalle select, 
+    .tabla-detalle textarea {
+        width: 100%;
+        border: 1px solid transparent; 
+        background: transparent;
+        padding: 2px 4px;
+        font-family: Arial, sans-serif;
+        font-size: 11px;
+        height: 22px;
+        box-sizing: border-box;
+        color: #000;
+    }
+    
+    .tabla-detalle input:focus, 
+    .tabla-detalle select:focus, 
+    .tabla-detalle textarea:focus {
+        border-color: #2563eb;
+        background-color: #fff;
+        outline: none;
+    }
+    
+    .tabla-detalle textarea { height: 32px; resize: vertical; }
+    
+    .tabla-detalle .header-seccion { 
+        background-color: #e5e7eb; 
+        color: #374151; 
+        font-weight: bold; 
+        text-align: left; 
+        padding: 4px 10px; 
+        border: 1px solid #ccc; 
+        font-size: 11px; 
+        height: 24px; 
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    <!-- ================= PANEL IZQUIERDO ================= -->
+    <div class="left-panel">
+        <div class="toolbar">
+            <a href="{% url 'crear_cliente' %}" class="toolbar-btn" title="Nuevo Cliente">➕</a>
+            <a href="{% if cliente_editar %}?accion=editar&id={{ cliente_editar.id }}{% else %}#{% endif %}" 
+               class="toolbar-btn" title="Modificar Cliente" 
+               {% if not cliente_editar or mostrar_formulario %}style="pointer-events: none; opacity: 0.3;"{% endif %}>✏️</a>
+            <button type="submit" form="form-cliente" class="toolbar-btn" title="Guardar" {% if not mostrar_formulario %}disabled{% endif %}>💾</button>
+            <a href="{% url 'lista_clientes' %}" class="toolbar-btn" title="Cancelar" {% if not mostrar_formulario %}style="pointer-events: none; opacity: 0.3;"{% endif %}>❌</a>
+            
+            <div style="border-left: 1px solid #ccc; height: 16px; margin: 0 4px;"></div>
+            
+            <a href="{% url 'descargar_plantilla' %}" class="toolbar-btn" title="Descargar Plantilla Excel">📄</a>
+            
+            <label for="excel-upload" class="toolbar-btn" title="Importar desde Excel" style="cursor:pointer; margin:0;">📥</label>
+            <form method="POST" action="{% url 'importar_clientes' %}" enctype="multipart/form-data" style="display:none;" id="form-import">
+                {% csrf_token %}
+                <input type="file" name="archivo_excel" id="excel-upload" accept=".xlsx, .xls" onchange="document.getElementById('form-import').submit();">
+            </form>
+
+            <a href="{% url 'exportar_clientes' %}" class="toolbar-btn" title="Exportar a Excel">📤</a>
+        </div>
+        
+        <div style="padding: 3px; background: #f9f9f9; border-bottom: 1px solid #ccc;">
+            <input type="text" id="search-input" placeholder="Buscar..." onkeyup="filtrarLista()" style="width: 100%; padding: 2px 4px; border: 1px solid #a0b0c0; font-size: 11px; box-sizing: border-box;">
+        </div>
+
+        <div class="filter-bar">
+            <select id="filter-estado" class="filter-select" onchange="window.location.href='?estado=' + this.value;">
+                <option value="" {% if not estado_filtro %}selected{% endif %}>Todos los Estados</option>
+                <option value="activo" {% if estado_filtro == 'activo' %}selected{% endif %}>Activos / Recurrentes</option>
+                <option value="eventual" {% if estado_filtro == 'eventual' %}selected{% endif %}>Eventuales</option>
+                <option value="inactivo" {% if estado_filtro == 'inactivo' %}selected{% endif %}>Inactivos</option>
+            </select>
+        </div>
+
+        <div class="list-header"><span>Clientes ({{ clientes|length }})</span></div>
+        
+        <div class="list-items" id="lista-clientes">
+            {% for cliente in clientes %}
+                <div class="list-item {% if cliente_editar.id == cliente.id %}active{% endif %}" data-search="{{ cliente.razon_social|lower }} {{ cliente.nit }}" onclick="window.location.href='?id={{ cliente.id }}'">
+                    <div class="client-row-1">
+                        <span class="client-name" title="{{ cliente.razon_social }}">{{ cliente.razon_social }}</span>
+                        
+                        <span class="client-estado" style="
+                            {% if cliente.estado_cliente == 'activo' %}background-color: #bbf7d0; color: #166534;
+                            {% elif cliente.estado_cliente == 'eventual' %}background-color: #fef08a; color: #854d0e;
+                            {% else %}background-color: #fecaca; color: #991b1b;{% endif %}">
+                            {{ cliente.get_estado_cliente_display|lower }}
+                        </span>
+                    </div>
+                    <div class="client-row-2">
+                        <span class="client-nit">NIT: {{ cliente.nit }}</span>
+                    </div>
+                </div>
+            {% empty %}
+                <div style="padding: 10px; text-align: center; color: #666; font-size: 11px;">No hay clientes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ================= PANEL DERECHO ================= -->
+    <div class="right-panel">
+        
+        <!-- MODO FORMULARIO (Nuevo o Editar) -->
+        {% if mostrar_formulario %}
+            <h3 class="titulo-form">
+                {% if accion == 'editar' %}Editando Cliente: {{ cliente_editar.razon_social }}{% else %}Nuevo Cliente{% endif %}
+            </h3>
+            
+            <form method="post" id="form-cliente">
+                {% csrf_token %}
+
+                <!-- SECCIÓN 1: DATOS GENERALES -->
+                <div class="contenedor-tabla">
+                    <table class="tabla-detalle">
+                        <tr><td colspan="4" class="header-seccion">Datos Generales de la Empresa</td></tr>
+                        <tr>
+                            <td class="lbl">NIT:</td><td class="val">{{ form.nit }}</td>
+                            <td class="lbl">Razón Social:</td><td class="val">{{ form.razon_social }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Estado:</td><td class="val">{{ form.estado_cliente }}</td>
+                            <td class="lbl">Tipo Empresa:</td><td class="val">{{ form.tipo_empresa }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Tipo Sociedad:</td><td class="val">{{ form.tipo_sociedad }}</td>
+                            <td class="lbl">Dirección:</td><td class="val">{{ form.direccion }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Teléfono:</td><td class="val">{{ form.telefono }}</td>
+                            <td class="lbl">Email Empresa:</td><td class="val">{{ form.email }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Pass Email:</td><td class="val">{{ form.password_email_empresa }}</td>
+                            <td class="lbl">Rubro:</td><td class="val">{{ form.rubro_actividad }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Tipo Servicio:</td><td class="val">{{ form.tipo_servicio }}</td>
+                            <td class="lbl">Honorarios (Bs):</td><td class="val">{{ form.honorarios_mensuales }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Cierre Gestión:</td><td class="val">{{ form.cierre_gestion }}</td>
+                            <td class="lbl">Caja Salud:</td><td class="val">{{ form.tipo_caja_salud }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Nro. Patronal:</td><td class="val">{{ form.numero_patronal }}</td>
+                            <td class="lbl">Hab. Cobro:</td><td class="val">{{ form.habilitado_para_cobro }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- SECCIÓN 2: REPRESENTANTE LEGAL -->
+                <div class="contenedor-tabla">
+                    <table class="tabla-detalle">
+                        <tr><td colspan="4" class="header-seccion">Datos del Representante Legal</td></tr>
+                        <tr>
+                            <td class="lbl">Nombre:</td><td class="val">{{ form.representante_legal }}</td>
+                            <td class="lbl">Email:</td><td class="val">{{ form.rep_legal_email }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- SECCIÓN 3: DATOS DE CONTACTO -->
+                <div class="contenedor-tabla">
+                    <table class="tabla-detalle">
+                        <tr><td colspan="4" class="header-seccion">Datos de Contacto (Persona de Enlace)</td></tr>
+                        <tr>
+                            <td class="lbl">Nombre:</td><td class="val">{{ form.contacto_nombre }}</td>
+                            <td class="lbl">Cargo:</td><td class="val">{{ form.contacto_cargo }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Email:</td><td class="val">{{ form.contacto_email }}</td>
+                            <td class="lbl">Celular:</td><td class="val">{{ form.contacto_celular }}</td>
+                        </tr>
+                    </table>
+                </div>
+
+                <!-- SECCIÓN 4: CREDENCIALES -->
+                <div class="contenedor-tabla">
+                    <table class="tabla-detalle">
+                        <tr><td colspan="4" class="header-seccion">Credenciales de Acceso a Portales</td></tr>
+                        <tr>
+                            <td class="lbl">Usuario SIN:</td><td class="val">{{ form.user_sin }}</td>
+                            <td class="lbl">Pass SIN:</td><td class="val">{{ form.pass_sin }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Usuario Gestora:</td><td class="val">{{ form.user_gestora }}</td>
+                            <td class="lbl">Pass Gestora:</td><td class="val">{{ form.pass_gestora }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Usuario Caja:</td><td class="val">{{ form.user_cns }}</td>
+                            <td class="lbl">Pass Caja:</td><td class="val">{{ form.pass_cns }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Usuario SEDEM:</td><td class="val">{{ form.user_sedem }}</td>
+                            <td class="lbl">Pass SEDEM:</td><td class="val">{{ form.pass_sedem }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Usuario Aduana:</td><td class="val">{{ form.user_aduana }}</td>
+                            <td class="lbl">Pass Aduana:</td><td class="val">{{ form.pass_aduana }}</td>
+                        </tr>
+                        <tr>
+                            <td class="lbl">Usuario Firma:</td><td class="val">{{ form.user_firma }}</td>
+                            <td class="lbl">PIN Firma:</td><td class="val">{{ form.pin_firma }}</td>
+                        </tr>
+                    </table>
+                </div>
+            </form>
+
+        <!-- MODO SOLO LECTURA -->
+        {% elif cliente_editar %}
+            <h3 class="titulo-form">Información del Cliente: {{ cliente_editar.razon_social }}</h3>
+            
+            <!-- SECCIÓN 1: DATOS GENERALES -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Datos Generales de la Empresa</td></tr>
+                    <tr>
+                        <td class="lbl">NIT:</td><td class="val">{{ cliente_editar.nit|default:"-" }}</td>
+                        <td class="lbl">Razón Social:</td><td class="val">{{ cliente_editar.razon_social|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Estado:</td><td class="val">{{ cliente_editar.get_estado_cliente_display|default:"-" }}</td>
+                        <td class="lbl">Tipo Empresa:</td><td class="val">{{ cliente_editar.tipo_empresa|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Tipo Sociedad:</td><td class="val">{{ cliente_editar.tipo_sociedad|default:"-" }}</td>
+                        <td class="lbl">Dirección:</td><td class="val">{{ cliente_editar.direccion|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Teléfono:</td><td class="val">{{ cliente_editar.telefono|default:"-" }}</td>
+                        <td class="lbl">Email Empresa:</td><td class="val">{{ cliente_editar.email|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Pass Email:</td><td class="val">{{ cliente_editar.password_email_empresa|default:"-" }}</td>
+                        <td class="lbl">Rubro:</td><td class="val">{{ cliente_editar.rubro_actividad|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Tipo Servicio:</td><td class="val">{{ cliente_editar.tipo_servicio|default:"-" }}</td>
+                        <td class="lbl">Honorarios (Bs):</td><td class="val">{{ cliente_editar.honorarios_mensuales|default:"0.00" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Cierre Gestión:</td><td class="val">{{ cliente_editar.cierre_gestion|default:"-" }}</td>
+                        <td class="lbl">Caja Salud:</td><td class="val">{{ cliente_editar.tipo_caja_salud|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Nro. Patronal:</td><td class="val">{{ cliente_editar.numero_patronal|default:"-" }}</td>
+                        <td class="lbl">Hab. Cobro:</td><td class="val">{% if cliente_editar.habilitado_para_cobro %}Sí{% else %}No{% endif %}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 2: REPRESENTANTE LEGAL -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Datos del Representante Legal</td></tr>
+                    <tr>
+                        <td class="lbl">Nombre:</td><td class="val">{{ cliente_editar.representante_legal|default:"-" }}</td>
+                        <td class="lbl">Email:</td><td class="val">{{ cliente_editar.rep_legal_email|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 3: DATOS DE CONTACTO -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Datos de Contacto (Persona de Enlace)</td></tr>
+                    <tr>
+                        <td class="lbl">Nombre:</td><td class="val">{{ cliente_editar.contacto_nombre|default:"-" }}</td>
+                        <td class="lbl">Cargo:</td><td class="val">{{ cliente_editar.contacto_cargo|default:"-" }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">Email:</td><td class="val">{{ cliente_editar.contacto_email|default:"-" }}</td>
+                        <td class="lbl">Celular:</td><td class="val">{{ cliente_editar.contacto_celular|default:"-" }}</td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 4: CREDENCIALES -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Credenciales de Acceso a Portales</td></tr>
+                    {% for cred in cliente_editar.credenciales.all %}
+                        <tr>
+                            <td class="lbl">Usuario {{ cred.portal }}:</td><td class="val">{{ cred.usuario|default:"-" }}</td>
+                            <td class="lbl">Pass {{ cred.portal }}:</td><td class="val">{{ cred.password|default:"-" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr><td colspan="4" style="text-align:center; padding: 5px; color: #666; font-size: 11px;">No hay credenciales registradas para este cliente.</td></tr>
+                    {% endfor %}
+                </table>
+            </div>
+
+        {% else %}
+            <div style="text-align: center; color: #888; margin-top: 50px;">
+                <h4>Selecciona un cliente de la lista para ver su información.</h4>
+                <p>Haz clic en el botón <strong>✏️ Modificar</strong> en la barra lateral para editar sus datos.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    function filtrarLista() {
+        let input = document.getElementById('search-input').value.toLowerCase();
+        let items = document.querySelectorAll('#lista-clientes .list-item');
+        items.forEach(item => {
+            let searchData = item.getAttribute('data-search');
+            item.style.display = searchData.includes(input) ? 'block' : 'none';
+        });
+    }
+</script>
+{% endblock %}

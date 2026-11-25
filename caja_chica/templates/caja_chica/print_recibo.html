@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Imprimir Recibos</title>
+    <style>
+        /* FORZAR TAMAÑO CARTA Y MÁRGENES CERO */
+        @page {
+            size: letter portrait;
+            margin: 0 !important; 
+        }
+
+        html, body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* REGLA MAESTRA PARA MAYÚSCULAS EN TODO */
+        body, div, span, p, h1, h2, h3, label, input, textarea, select, table, th, td {
+            text-transform: uppercase !important;
+        }
+
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+            color: #000;
+            background: #cbd5e1;
+            -webkit-print-color-adjust: exact !important;
+        }
+
+        /* =========================================
+           LA HOJA FÍSICA (TAMAÑO CARTA EXACTO)
+           ========================================= */
+        .sheet {
+            width: 21.59cm;
+            height: 27.94cm;
+            background: #ffffff;
+            margin: 0 auto 20px auto;
+            padding: 0;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        /* CADA RECIBO (EXACTAMENTE LA MITAD DE LA HOJA) */
+        .receipt-half {
+            height: 50%;
+            padding: 10px 20px 0 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* Importante para que el sello no se salga del recibo */
+        }
+
+        /* Línea punteada para cortar */
+        .receipt-half:first-child {
+            border-bottom: 1px dashed #666;
+        }
+
+        /* =========================================
+           ESTILO PARA EL SELLO DE AGUA (ANULADO)
+           ========================================= */
+        .watermark-anulado {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-35deg);
+            font-size: 80px;
+            font-weight: 900;
+            color: rgba(220, 38, 38, 0.25); /* Rojo con transparencia */
+            border: 6px solid rgba(220, 38, 38, 0.25);
+            padding: 10px 30px;
+            border-radius: 10px;
+            z-index: 1000; /* Para que esté por encima de todo el texto */
+            pointer-events: none;
+            letter-spacing: 10px;
+        }
+
+        /* =========================================
+           DISEÑO INTERNO DEL RECIBO
+           ========================================= */
+        .header-doc { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-start; 
+            margin-bottom: 8px; 
+            border-bottom: 2px solid #1f4e79; 
+            padding-bottom: 8px; 
+        }
+        
+        .logo-area { flex: 1; display: flex; align-items: center; gap: 12px; }
+        
+        .logo-area img { 
+            height: 70px;
+            width: auto; 
+            max-width: 130px;
+            object-fit: contain; 
+        }
+        
+        .logo-area h2 { 
+            margin: 0; 
+            font-size: 14px; 
+            font-weight: 800; 
+            color: #1f4e79; 
+            line-height: 1.1; 
+        }
+        .logo-area p { 
+            margin: 1px 0; 
+            font-size: 10px; 
+            color: #333; 
+            font-weight: 600;
+        }
+        
+        .titulo-area { flex: 0 0 auto; text-align: center; padding: 0 10px; }
+        .titulo-area h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 1px;}
+        .titulo-area h3 { margin: 2px 0 0 0; font-size: 14px; color: #dc2626; font-weight: bold;}
+        .titulo-area .etiqueta { margin-top: 4px; font-size: 10px; color: #fff; background: #dc2626; padding: 2px 8px; border-radius: 3px; font-weight: bold; display: inline-block; }
+
+        .monto-box { flex: 1; display: flex; flex-direction: column; align-items: flex-end; }
+        .monto-box label { font-size: 10px; font-weight: bold; color: #475569; margin-bottom: 1px;}
+        .monto-input-top { font-size: 18px; font-weight: 800; color: #000; border: 2px solid #facc15; background: #fef9c3; padding: 3px 10px; width: 110px; text-align: right; }
+
+        /* FECHAS */
+        .tabla-fecha { display: flex; gap: 15px; margin-bottom: 12px; align-items: flex-end; justify-content: flex-start; width: 100%; }
+        .fecha-col { display: flex; flex-direction: column; align-items: center; }
+        .fecha-col label { font-weight: 700; font-size: 11px; color: #1e3a8a; margin-bottom: 2px;}
+        .fecha-col input { text-align: center; border: 1px solid #94a3b8; background: #fef9c3; padding: 3px; font-weight: bold; font-size: 12px; }
+        
+        .fecha-col input[name="lugar"] { width: 130px; } 
+        .fecha-col input[name="dia"], 
+        .fecha-col input[name="mes"], 
+        .fecha-col input[name="anio"] { width: 50px; }
+
+        /* CUERPO DEL RECIBO */
+        .receipt-body { flex-grow: 1; }
+
+        .fila-doc { display: flex; align-items: flex-start; margin-bottom: 10px; width: 100%; }
+        .fila-doc label { font-weight: 700; font-size: 11px; color: #1e3a8a; width: 95px; flex-shrink: 0; padding-top: 3px; }
+        
+        /* NUEVO ESTILO PARA TEXTOS LARGOS (Reemplaza a los inputs) */
+        .texto-dinamico {
+            flex: 1;
+            border-bottom: 1px dotted #333;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 2px 5px;
+            line-height: 1.3;
+            word-wrap: break-word; /* Permite saltos de línea */
+            white-space: normal;
+            min-height: 22px;
+            box-sizing: border-box;
+        }
+
+        .fila-doble { display: flex; gap: 15px; width: 100%; }
+
+        .bloques-totales-row { display: flex; gap: 10px; margin: 10px 0; align-items: center; }
+        .bloque-total { display: flex; align-items: center; gap: 5px; flex: 1;}
+        .bloque-total label { font-weight: 700; font-size: 11px; color: #1e3a8a; white-space: nowrap;}
+        .bloque-total input { width: 100%; border: 1px solid #94a3b8; background: #fef9c3; padding: 4px; font-weight: bold; text-align: right; font-size: 12px; }
+
+        .control-row { display: flex; justify-content: space-between; align-items: center; margin: 8px 0; background: #f8fafc; padding: 6px; border: 1px dashed #cbd5e1;}
+        .control-group { display: flex; align-items: center; gap: 5px; }
+        .control-group label { font-weight: 700; font-size: 11px; color: #1e3a8a;}
+        .control-group input[type="text"] { border: 1px solid #94a3b8; background: #fef9c3; padding: 3px 6px; font-weight: bold; font-size: 11px;}
+
+        .tabla-impuestos { width: 100%; border-collapse: collapse; margin: 8px 0; }
+        .tabla-impuestos th { background: #fef08a; border: 1px solid #000; padding: 4px; font-weight: 700; font-size: 10px; text-align: center;}
+        .tabla-impuestos td { border: 1px solid #000; padding: 0; }
+        .tabla-impuestos input { width: 100%; border: none; background: transparent; padding: 5px; text-align: center; font-weight: 700; font-size: 11px;}
+        .tabla-impuestos td.highlight { background: #fef9c3; }
+
+        /* FIRMAS */
+        .firmas-doc { 
+            display: flex; 
+            justify-content: space-around; 
+            margin-top: auto; 
+            padding-bottom: 1.2cm; 
+        }
+        .firma-block { width: 45%; text-align: center; }
+        .firma-linea { 
+            border-top: 1px solid #000; 
+            width: 180px; 
+            margin: 0 auto 5px auto; 
+        }
+        .firma-texto { font-weight: 700; font-size: 11px; color: #1f4e79; }
+        .firma-nombre { font-size: 10px; color: #333; margin-top: 2px; font-weight: bold;}
+
+        /* BOTÓN DE IMPRESIÓN */
+        .no-print { text-align: center; margin-bottom: 20px; padding: 20px; background: #cbd5e1;}
+        .no-print button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+        
+        .no-print p { text-transform: none !important; }
+
+        /* =========================================
+           REGLAS ESTRICTAS DE IMPRESIÓN
+           ========================================= */
+        @media print {
+            body { background: #fff; }
+            .sheet { 
+                box-shadow: none; 
+                margin: 0; 
+                border: none; 
+                page-break-after: always; 
+            }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        <p style="font-size: 12px; margin-top: 10px; color: #475569;">
+            <strong>Importante:</strong> En la ventana de impresión, selecciona <strong>Márgenes: Ninguno</strong> y <strong>Escala: 100%</strong> para que el PDF salga perfecto.
+        </p>
+    </div>
+
+    {% for copia in copias %}
+        
+        {% if forloop.counter0|divisibleby:2 %}
+            <div class="sheet">
+        {% endif %}
+
+            <div class="receipt-half">
+                {% if copia.recibo %}
+                    
+                    <!-- Sello de ANULADO si el estado es anulado -->
+                    {% if copia.recibo.estado == 'anulado' %}
+                        <div class="watermark-anulado">ANULADO</div>
+                    {% endif %}
+
+                    <div class="header-doc">
+                        <div class="logo-area">
+                            {% if config_empresa.logo %}<img src="{{ config_empresa.logo.url }}" alt="Logo">{% endif %}
+                            <div>
+                                <h2>{{ config_empresa.nombre }}</h2>
+                                <p>NIT: {{ config_empresa.nit }}</p>
+                                <p>{{ config_empresa.direccion }}</p>
+                            </div>
+                        </div>
+                        
+                        <div class="titulo-area">
+                            <h1>RECIBO - PAGOS</h1>
+                            <h3>{{ copia.recibo.numero }}</h3>
+                            {% if copia.etiqueta %}
+                                <div class="etiqueta">{{ copia.etiqueta }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="monto-box">
+                            <label>MONTO PAGADO</label>
+                            <div class="monto-input-top">{{ copia.recibo.total_pagado }}</div>
+                        </div>
+                    </div>
+
+                    <div class="receipt-body">
+                        <div class="tabla-fecha">
+                            <div class="fecha-col"><label>Lugar</label><input type="text" name="lugar" value="{{ copia.recibo.lugar }}" readonly></div>
+                            <div class="fecha-col"><label>Día</label><input type="text" name="dia" value="{{ copia.recibo.fecha|date:'d' }}" readonly></div>
+                            <div class="fecha-col"><label>Mes</label><input type="text" name="mes" value="{{ copia.recibo.fecha|date:'m' }}" readonly></div>
+                            <div class="fecha-col"><label>Año</label><input type="text" name="anio" value="{{ copia.recibo.fecha|date:'Y' }}" readonly></div>
+                        </div>
+
+                        <!-- FILA DOBLE (Pagado a / C.I.) CON DIV -->
+                        <div class="fila-doble">
+                            <div class="fila-doc" style="flex: 2;">
+                                <label>Pagado a:</label>
+                                <div class="texto-dinamico">{{ copia.recibo.tercero_nombre }}</div>
+                            </div>
+                            <div class="fila-doc" style="flex: 1;">
+                                <label style="width: 35px;">C.I.:</label>
+                                <div class="texto-dinamico">{{ copia.recibo.nit_ci }}</div>
+                            </div>
+                        </div>
+
+                        <!-- CAMBIO AQUÍ: Se agregó la clase "literal-monto" y el data-monto para JS -->
+                        <div class="fila-doc">
+                            <label>La suma de:</label>
+                            <div class="texto-dinamico literal-monto" style="font-style: italic; color: #1e3a8a;" data-monto="{{ copia.recibo.total_pagado }}">
+                                <!-- El JS llenará esto automáticamente -->
+                            </div>
+                        </div>
+
+                        <!-- CONCEPTO CON DIV PARA QUE NO SE CORTE -->
+                        <div class="fila-doc">
+                            <label>Concepto de:</label>
+                            <div class="texto-dinamico">{{ copia.recibo.concepto }}</div>
+                        </div>
+
+                        <div class="bloques-totales-row">
+                            <div class="bloque-total">
+                                <label>A cuenta:</label>
+                                <input type="text" value="{{ copia.recibo.total_bruto }}" readonly>
+                            </div>
+                            <div class="bloque-total">
+                                <label>Saldo:</label>
+                                <input type="text" value="0.00" readonly>
+                            </div>
+                            <div class="bloque-total">
+                                <label>Total:</label>
+                                <input type="text" value="{{ copia.recibo.total_pagado }}" readonly>
+                            </div>
+                        </div>
+
+                        <div class="control-row">
+                            <div class="control-group">
+                                <label>Factura N°:</label>
+                                <input type="text" value="{{ copia.recibo.factura_nro|default:'-' }}" readonly>
+                            </div>
+                            <div class="control-group">
+                                <label>Retención:</label>
+                                <input type="text" value="{{ copia.recibo.get_tipo_retencion_display }}" readonly>
+                            </div>
+                        </div>
+
+                        <table class="tabla-impuestos">
+                            <thead>
+                                <tr><th>Importe total</th><th>Retención RC-IVA 13%</th><th>Retención IUE 5%</th><th>Retención IT 3%</th><th>Importe pagado</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td class="highlight"><input type="text" value="{{ copia.recibo.total_bruto }}" readonly></td>
+                                    <td><input type="text" value="{{ copia.recibo.retencion_rc_iva }}" readonly></td>
+                                    <td><input type="text" value="{{ copia.recibo.retencion_iue }}" readonly></td>
+                                    <td><input type="text" value="{{ copia.recibo.retencion_it }}" readonly></td>
+                                    <td class="highlight"><input type="text" value="{{ copia.recibo.total_pagado }}" readonly></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="firmas-doc">
+                        <div class="firma-block">
+                            <div class="firma-linea"></div>
+                            <div class="firma-texto">Entregue conforme</div>
+                        </div>
+                        <div class="firma-block">
+                            <div class="firma-linea"></div>
+                            <div class="firma-texto">Recibi conforme</div>
+                            <div class="firma-nombre">{{ copia.recibo.tercero_nombre }}</div>
+                            <div class="firma-nombre">{{ copia.recibo.nit_ci }}</div>
+                        </div>
+                    </div>
+
+                {% else %}
+                    <div style="text-align: center; margin-top: 100px; color: #999;">
+                        <h3>No hay más recibos.</h3>
+                    </div>
+                {% endif %}
+            </div>
+
+        {% if forloop.counter|divisibleby:2 or forloop.last %}
+            </div>
+        {% endif %}
+
+    {% endfor %}
+
+    <!-- SCRIPT PARA CONVERTIR EL MONTO A LETRAS -->
+    <script>
+        function numeroALetras(num) {
+            const unidades = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+            const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+            const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+            
+            let entero = Math.floor(num); 
+            let centavos = Math.round((num - entero) * 100);
+            
+            function convertir(n) {
+                if (n === 0) return "CERO"; 
+                if (n < 10) return unidades[n]; 
+                if (n < 20) { const esp = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE']; return esp[n - 10]; }
+                if (n < 100) { let dec = Math.floor(n / 10); let uni = n % 10; return decenas[dec] + (uni > 0 ? " Y " + unidades[uni] : ""); }
+                if (n < 1000) { let cen = Math.floor(n / 100); let resto = n % 100; return (n === 100 ? "CIEN" : centenas[cen]) + (resto > 0 ? " " + convertir(resto) : ""); }
+                if (n < 1000000) { let miles = Math.floor(n / 1000); let resto = n % 1000; return (miles === 1 ? "MIL" : convertir(miles) + " MIL") + (resto > 0 ? " " + convertir(resto) : ""); }
+                return "MONTO EXCEDIDO";
+            }
+            return `${convertir(entero)} ${centavos.toString().padStart(2, '0')}/100 BOLIVIANOS`.toUpperCase();
+        }
+
+        // Ejecutar cuando la página cargue
+        document.addEventListener('DOMContentLoaded', () => {
+            // Buscamos todos los divs que tengan la clase literal-monto
+            document.querySelectorAll('.literal-monto').forEach(elemento => {
+                // Obtenemos el valor guardado en el atributo data-monto
+                let montoStr = elemento.getAttribute('data-monto') || "0";
+                // Reemplazamos coma por punto por si acaso viene con formato de Bolivia
+                let monto = parseFloat(montoStr.replace(',', '.')) || 0;
+                
+                // Asignamos el texto convertido
+                elemento.textContent = numeroALetras(monto);
+            });
+        });
+    </script>
+</body>
+</html>

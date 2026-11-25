@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}Gestionar Recibos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .split-layout { display: flex; height: 100%; gap: 5px; overflow: hidden; background: #e6edf5; padding: 5px; }
+    
+    /* PANEL IZQUIERDO */
+    .left-panel { width: 280px; min-width: 280px; background: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; height: 100%; }
+    .filter-bar { padding: 5px; background: #f0f0f0; border-bottom: 1px solid #a0b0c0; display: flex; flex-direction: column; gap: 5px; }
+    .filter-select { width: 100%; padding: 4px; border: 1px solid #a0b0c0; font-size: 11px; font-weight: bold; }
+    .select-all-box { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: bold; color: #1f4e79; cursor: pointer; padding-left: 2px;}
+    .select-all-box input { width: 16px; height: 16px; cursor: pointer; }
+
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 11px; padding: 6px; }
+    .list-scroll { flex-grow: 1; overflow-y: auto; }
+    
+    /* ESTILOS BASE DE CADA FILA */
+    .list-item { padding: 4px 6px; border-bottom: 1px solid #eee; font-size: 11px; display: flex; align-items: flex-start; gap: 6px; transition: background 0.2s; }
+    
+    /* 1. DISPONIBLE (BLANCO) */
+    .list-item.disponible:hover { background: #f0f4f8; }
+    .list-item.disponible .chk-vincular { width: 16px; height: 16px; cursor: pointer; margin-top: 1px; }
+    
+    /* 2. VINCULADO A ESTA RENDICIÓN (VERDE SUAVE) */
+    .list-item.vinculado-actual { background-color: #d1fae5; border-left: 3px solid #10b981; }
+    .list-item.vinculado-actual .chk-vincular { width: 16px; height: 16px; cursor: pointer; margin-top: 1px; }
+
+    /* 3. VINCULADO A OTRA RENDICIÓN (PLATEADO/GRIS) */
+    .list-item.vinculado-otra { background-color: #e2e8f0; color: #64748b; border-left: 3px solid #94a3b8; }
+    .list-item.vinculado-otra .chk-vincular { width: 16px; height: 16px; margin-top: 1px; cursor: not-allowed; }
+    .list-item.vinculado-otra .item-num, .list-item.vinculado-otra .item-amount { color: #64748b; }
+
+    .item-info { flex-grow: 1; line-height: 1.2; }
+    .linea-top { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 0px;}
+    .item-num { font-size: 10px; color: #1f4e79; }
+    .item-amount { font-size: 10px; color: #059669; font-weight: bold; }
+    .item-detail { color: #475569; font-size: 9px; margin-bottom: 0px; }
+    .item-concepto { font-size: 9px; color: #333; }
+
+    /* ETIQUETA PARA LAS OTRAS RENDICIONES */
+    .tag-otra-rendicion { 
+        display: inline-block; 
+        background: #cbd5e1; 
+        color: #1e293b; 
+        font-size: 9px; 
+        font-weight: bold; 
+        padding: 1px 4px; 
+        border-radius: 3px; 
+        margin-top: 3px;
+    }
+
+    /* PANEL DERECHO */
+    .right-panel { flex-grow: 1; background: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .card-header { background: #e0e8f0; padding: 8px 10px; border-bottom: 1px solid #a0b0c0; font-weight: bold; color: #1f4e79; display: flex; justify-content: space-between; align-items: center; }
+    
+    .table-responsive { flex-grow: 1; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #f0f0f0; position: sticky; top: 0; border: 1px solid #a0b0c0; padding: 8px; text-align: center; }
+    td { border: 1px solid #cbd5e1; padding: 6px; }
+    
+    .btn { padding: 4px 10px; border: 1px solid #a0b0c0; background: #fff; cursor: pointer; font-size: 11px; font-weight: bold; border-radius: 3px; text-decoration: none; color: #000; }
+    .btn-danger { background: #fee2e2; color: #991b1b; border-color: #fca5a5; padding: 3px 8px;}
+    .btn-danger:hover { background: #fecaca; }
+
+    /* ALERTAS */
+    .alert { padding: 10px; margin: 10px; border-radius: 4px; font-size: 12px; font-weight: bold; }
+    .alert-error { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    
+    <!-- PANEL IZQUIERDO -->
+    <div class="left-panel">
+        <div class="filter-bar">
+            <!-- LOS 2 FILTROS SOLICITADOS -->
+            <select id="filtro-recibos" class="filter-select" onchange="filtrarLista()">
+                <option value="todos">📌 Todos los Recibos</option>
+                <option value="disponibles" selected>✅ Solo Recibos Disponibles</option>
+            </select>
+            
+            <label class="select-all-box">
+                <input type="checkbox" id="chk-todos" onchange="seleccionarTodos(this)">
+                Seleccionar Todos (Disponibles)
+            </label>
+        </div>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-error">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="list-header">
+            <span>Lista de Recibos ({{ todos_recibos.count }})</span>
+        </div>
+        
+        <div class="list-scroll" id="lista-recibos">
+            {% for rec in todos_recibos %}
+                
+                <!-- 1. RECIBO DISPONIBLE (BLANCO) -->
+                {% if not rec.solicitud %}
+                    <div class="list-item disponible" data-status="disponible">
+                        <form method="POST" id="form-v-{{ rec.id }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="recibo_id" value="{{ rec.id }}">
+                            <input type="hidden" name="accion" value="vincular">
+                            <input type="checkbox" class="chk-vincular" onchange="document.getElementById('form-v-{{ rec.id }}').submit();">
+                        </form>
+                        <div class="item-info">
+                            <div class="linea-top">
+                                <span class="item-num">{{ rec.numero }}</span>
+                                <span class="item-amount">Bs. {{ rec.total_pagado }}</span>
+                            </div>
+                            <div class="item-detail">{{ rec.fecha|date:"d/m/Y" }} | {{ rec.tercero_nombre|truncatechars:15 }}</div>
+                            <div class="item-concepto">{{ rec.concepto|truncatechars:30 }}</div>
+                        </div>
+                    </div>
+
+                <!-- 2. RECIBO VINCULADO A ESTA MISMA RENDICIÓN (VERDE) -->
+                {% elif rec.solicitud == solicitud %}
+                    <div class="list-item vinculado-actual" data-status="actual">
+                        <form method="POST" id="form-v-{{ rec.id }}">
+                            {% csrf_token %}
+                            <input type="hidden" name="recibo_id" value="{{ rec.id }}">
+                            <input type="hidden" name="accion" value="desvincular">
+                            <input type="checkbox" class="chk-vincular" onchange="document.getElementById('form-v-{{ rec.id }}').submit();" checked>
+                        </form>
+                        <div class="item-info">
+                            <div class="linea-top">
+                                <span class="item-num">{{ rec.numero }}</span>
+                                <span class="item-amount">Bs. {{ rec.total_pagado }}</span>
+                            </div>
+                            <div class="item-detail">{{ rec.fecha|date:"d/m/Y" }} | {{ rec.tercero_nombre|truncatechars:15 }}</div>
+                            <div class="item-concepto">{{ rec.concepto|truncatechars:30 }}</div>
+                        </div>
+                    </div>
+
+                <!-- 3. RECIBO VINCULADO A OTRA RENDICIÓN (PLATEADO/GRIS) -->
+                {% else %}
+                    <div class="list-item vinculado-otra" data-status="otra">
+                        <!-- Checkbox deshabilitado -->
+                        <input type="checkbox" class="chk-vincular" disabled>
+                        
+                        <div class="item-info">
+                            <div class="linea-top">
+                                <span class="item-num">{{ rec.numero }}</span>
+                                <span class="item-amount">Bs. {{ rec.total_pagado }}</span>
+                            </div>
+                            <div class="item-detail">{{ rec.fecha|date:"d/m/Y" }} | {{ rec.tercero_nombre|truncatechars:15 }}</div>
+                            <div class="item-concepto">{{ rec.concepto|truncatechars:30 }}</div>
+                            <!-- ETIQUETA INDICANDO LA RENDICIÓN -->
+                            <span class="tag-otra-rendicion">🔒 VINCULADO A: {{ rec.solicitud.numero_solicitud }}</span>
+                        </div>
+                    </div>
+                {% endif %}
+
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="right-panel">
+        <div class="card-header">
+            <span>Recibos Vinculados a la Solicitud: <strong>{{ solicitud.numero_solicitud }}</strong></span>
+            <a href="{% url 'rendicion_fondos' %}?id_sol={{ solicitud.id }}" class="btn" style="background: #e0e8f0;">⬅️ Volver a la Rendición</a>
+        </div>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>N° Recibo</th>
+                        <th>N° Factura</th>
+                        <th>Fecha</th>
+                        <th>Pagado a</th>
+                        <th>Concepto</th>
+                        <th>Monto (Bs.)</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in recibos_vinculados %}
+                    <tr>
+                        <td style="text-align: center;"><strong>{{ rec.numero }}</strong></td>
+                        <td style="text-align: center;">{{ rec.factura_nro|default:"-" }}</td>
+                        <td style="text-align: center;">{{ rec.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ rec.tercero_nombre }}</td>
+                        <td>{{ rec.concepto|truncatechars:30 }}</td>
+                        <td style="text-align: right; font-weight: bold;">{{ rec.total_pagado }}</td>
+                        <td style="text-align: center;">
+                            <form method="POST" style="margin: 0;">
+                                {% csrf_token %}
+                                <input type="hidden" name="recibo_id" value="{{ rec.id }}">
+                                <input type="hidden" name="accion" value="desvincular">
+                                <button type="submit" class="btn btn-danger">❌ Quitar</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="7" style="text-align: center; padding: 20px; color: #666;">Aún no has vinculado ningún recibo.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Ejecutar filtro al cargar la página para respetar la opción por defecto
+    window.onload = function() {
+        filtrarLista();
+    };
+
+    function filtrarLista() {
+        let filtro = document.getElementById('filtro-recibos').value;
+        let items = document.querySelectorAll('.list-item');
+
+        items.forEach(item => {
+            let status = item.getAttribute('data-status');
+            
+            if (filtro === 'disponibles') {
+                // SI EL FILTRO ES "SOLO DISPONIBLES":
+                // Ocultamos los que estén vinculados (a esta o a otra rendición)
+                if (status === 'actual' || status === 'otra') {
+                    item.style.display = 'none';
+                } else {
+                    item.style.display = 'flex';
+                }
+            } else {
+                // SI EL FILTRO ES "TODOS":
+                // Mostramos absolutamente todo
+                item.style.display = 'flex';
+            }
+        });
+    }
+
+    function seleccionarTodos(source) {
+        // Solo marcamos los que sean de tipo "disponible"
+        let checkboxes = document.querySelectorAll('.list-item[data-status="disponible"] .chk-vincular');
+        checkboxes.forEach(cb => {
+            if (cb.checked !== source.checked && source.checked) {
+                 cb.checked = true;
+                 cb.form.submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

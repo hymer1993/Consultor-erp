@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}Historial de Reembolsos{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Forzamos el contenedor para que ocupe toda la pantalla */
+    .split-layout { display: flex; height: 100%; width: 100%; gap: 5px; background: #e6edf5; padding: 5px; box-sizing: border-box; }
+    
+    /* PANEL IZQUIERDO */
+    .left-panel { 
+        width: 320px; 
+        min-width: 320px;
+        background: #fff; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+        height: 100%;
+    }
+    .search-bar { padding: 5px; background: #f0f0f0; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; }
+    .search-input { flex-grow: 1; padding: 3px; border: 1px solid #a0b0c0; font-size: 11px; }
+    
+    .toolbar { background: #f0f0f0; padding: 3px 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 2px; align-items: center; }
+    .toolbar-btn { background: transparent; border: 1px solid transparent; padding: 2px 5px; cursor: pointer; font-size: 14px; text-decoration: none; color: #000; display: inline-flex; align-items: center; justify-content: center; line-height: 1; }
+    .toolbar-btn:hover { border: 1px solid #a0b0c0; background: #fff; }
+    
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 11px; padding: 4px 5px; }
+    .list-item { padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+    .list-item:hover { background: #f0f4f8; }
+    .list-item.active { background: #cce0ff; font-weight: bold; }
+    
+    .badge-estado { padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: bold; background: #d1fae5; color: #065f46; }
+    
+    /* PANEL DERECHO */
+    .right-panel { 
+        flex-grow: 1; 
+        background: #cbd5e1; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+        overflow-y: auto; 
+        padding: 20px; 
+        align-items: center; 
+        height: 100%;
+    }
+    .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b; font-size: 13px; font-style: italic; }
+    
+    /* HOJA DEL DOCUMENTO */
+    .paper-doc { background: #ffffff; width: 100%; max-width: 800px; padding: 30px 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #94a3b8; margin: 0 auto; }
+    .header-doc { display: flex; justify-content: space-between; border-bottom: 2px solid #1f4e79; padding-bottom: 10px; margin-bottom: 20px; }
+    .header-doc h1 { margin: 0; font-size: 20px; color: #dc2626; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    
+    <!-- PANEL IZQUIERDO (Siempre visible) -->
+    <div class="left-panel">
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Buscar..." disabled>
+        </div>
+        <div class="toolbar">
+            <a href="{% url 'control_gastos' %}" class="toolbar-btn" title="Volver a Control de Gastos">↩️ Volver a Control</a>
+        </div>
+        
+        <div class="list-header">
+            <span>Planillas de Reembolso</span>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto;">
+            {% for r in reembolsos %}
+                <div class="list-item {% if reembolso_editar.id == r.id %}active{% endif %}" onclick="window.location.href='?id={{ r.id }}'">
+                    <div>
+                        <div style="font-weight: bold;">{{ r.numero_reembolso }}</div>
+                        <div style="color: #666; font-size: 10px;">{{ r.empleado_nombre }} | Bs. {{ r.total_reembolsado }}</div>
+                    </div>
+                    <div>
+                        <span class="badge-estado">Pagado</span>
+                    </div>
+                </div>
+            {% empty %}
+                <div style="padding: 15px; font-size: 11px; color: #666; text-align: center;">No hay planillas de reembolso generadas aún.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="right-panel">
+        {% if not reembolso_editar %}
+            <div class="empty-state">👉 Selecciona una planilla de la lista izquierda para ver los detalles.</div>
+        {% else %}
+            <div class="paper-doc">
+                <div class="header-doc">
+                    <div>
+                        <h2 style="margin: 0; color: #1f4e79;">Planilla de Reembolso</h2>
+                        <p><strong>N°:</strong> {{ reembolso_editar.numero_reembolso }}</p>
+                        <p><strong>Empleado:</strong> {{ reembolso_editar.empleado_nombre }}</p>
+                    </div>
+                    <div style="text-align: right;">
+                        <h1>Bs. {{ reembolso_editar.total_reembolsado }}</h1>
+                        <p>Fecha: {{ reembolso_editar.fecha_reembolso|date:"d/m/Y" }}</p>
+                    </div>
+                </div>
+                
+                <p>Este documento certifica la devolución de los fondos utilizados en los siguientes recibos de caja chica:</p>
+                
+                <table style="width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 11px;">
+                    <thead>
+                        <tr style="background: #e0e8f0;">
+                            <th style="border: 1px solid #000; padding: 6px;">N° Recibo</th>
+                            <th style="border: 1px solid #000; padding: 6px;">Fecha</th>
+                            <th style="border: 1px solid #000; padding: 6px;">Concepto</th>
+                            <th style="border: 1px solid #000; padding: 6px;">Monto</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rec in reembolso_editar.recibocajachica_set.all %}
+                        <tr>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ rec.numero }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: center;">{{ rec.fecha|date:"d/m/Y" }}</td>
+                            <td style="border: 1px solid #000; padding: 6px;">{{ rec.concepto }}</td>
+                            <td style="border: 1px solid #000; padding: 6px; text-align: right;">{{ rec.total_pagado }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                
+                <div style="margin-top: 20px; text-align: right;">
+                    <a href="{% url 'imprimir_reembolso' reembolso_editar.id %}" target="_blank" class="toolbar-btn" style="border: 1px solid #a0b0c0; padding: 6px 15px; text-decoration: none; background: #e0e8f0; font-weight: bold;">🖨️ Imprimir Documento</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

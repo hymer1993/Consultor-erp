@@ -1,0 +1,247 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .split-container { display: flex; height: 100%; gap: 5px; background-color: #e6edf5; padding-bottom: 5px; }
+    
+    /* PANEL IZQUIERDO EXACTAMENTE 280PX */
+    .left-panel { width: 280px; min-width: 280px; flex-shrink: 0; background-color: #f0f4f8; border: 1px solid #a0b0c0; display: flex; flex-direction: column; }
+    .search-bar { padding: 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; background: #fff; }
+    .search-bar input { flex-grow: 1; padding: 2px 5px; border: 1px solid #a0b0c0; font-size: 11px; }
+    
+    .toolbar { padding: 3px 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 2px; background: #e0e0e0; align-items: center; }
+    .toolbar-btn { background: transparent; border: 1px solid transparent; padding: 2px 4px; cursor: pointer; border-radius: 2px; font-size: 14px; text-decoration: none; color: #000; }
+    .toolbar-btn:hover { border-color: #a0b0c0; background: #d0d0d0; }
+    
+    /* Estilo para cuando el botón de la lupa está deshabilitado (sin selección) */
+    .toolbar-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .toolbar-btn:disabled:hover { background: transparent; border-color: transparent; }
+    
+    .toolbar-count { font-size: 10px; color: #555; margin-left: auto; padding-right: 5px; }
+    
+    .list-items { flex-grow: 1; overflow-y: auto; background: #fff; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #e0e0e0; cursor: pointer; font-size: 11px; }
+    .list-item:hover { background-color: #f0f4f8; }
+    .list-item.active { background-color: #dce6f0; border-left: 3px solid #0056b3; font-weight: bold; }
+    .list-item-left { display: flex; flex-direction: column; }
+    .list-item-title { color: #0056b3; font-weight: bold; }
+    .list-item-subtitle { font-size: 10px; color: #555; }
+
+    /* PANEL DERECHO */
+    .right-panel { flex-grow: 1; background-color: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; overflow: hidden; }
+    
+    .right-header { padding: 8px 10px; background-color: #f0f4f8; border-bottom: 1px solid #a0b0c0; display: flex; justify-content: space-between; align-items: center;}
+    .right-title { font-size: 13px; font-weight: bold; color: #0056b3; }
+    
+    .view-toggles { display: flex; gap: 5px; }
+    .btn-view { background: #fff; border: 1px solid #a0b0c0; padding: 3px 10px; cursor: pointer; font-size: 11px; border-radius: 3px; color: #333; }
+    .btn-view.active { background: #0056b3; color: white; border-color: #004494; }
+    
+    /* VISTA DETALLE */
+    .details-body { padding: 10px; flex-grow: 1; overflow-y: auto; }
+    .section-header { background-color: #e0e0e0; padding: 3px 5px; font-weight: bold; font-size: 11px; margin-bottom: 10px; border: 1px solid #a0b0c0; }
+    .data-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; font-size: 11px; }
+    .data-row { display: flex; }
+    .data-label { font-weight: bold; width: 100px; }
+    .data-value { flex-grow: 1; }
+    .action-bar { margin-top: 20px; padding-top: 10px; border-top: 1px solid #eee; display: flex; justify-content: flex-end; gap: 10px; }
+    .btn-pdf { background: #0056b3; color: white; padding: 6px 15px; text-decoration: none; border-radius: 3px; font-weight: bold; font-size: 12px; }
+    .btn-pdf:hover { background: #004494; color: white; }
+    
+    /* VISTA EXCEL */
+    #excel-view { display: none; flex-grow: 1; overflow: auto; padding: 10px; background: #fff; }
+    .excel-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: Arial, sans-serif; }
+    .excel-table th, .excel-table td { border: 1px solid #777; padding: 4px; }
+    .excel-table th { background-color: #E0E0E0; text-align: center; font-weight: bold; vertical-align: middle; }
+    .excel-table td { text-align: left; }
+    .excel-table td.center { text-align: center; }
+    .excel-table tr:nth-child(even) { background-color: #f9f9f9; }
+
+    .empty-state { display: flex; height: 100%; align-items: center; justify-content: center; color: #888; font-size: 12px; flex-direction: column; }
+</style>
+
+<div class="split-container">
+    <!-- PANEL IZQUIERDO (280px) -->
+    <div class="left-panel">
+        <div class="search-bar">
+            <input type="text" id="search-input" placeholder="Buscar..." onkeyup="filtrarLista()">
+        </div>
+        <div class="toolbar">
+            <a href="{% url 'crear_correspondencia' %}" class="toolbar-btn" title="Nueva Carta">➕</a>
+            <a href="{% url 'generacion_masiva' %}" class="toolbar-btn" title="Masiva">📦</a>
+            <button class="toolbar-btn" title="Actualizar" onclick="window.location.reload()">🔄</button>
+            
+            <!-- LUPA AQUÍ (INICIALMENTE DESHABILITADA) -->
+            <button class="toolbar-btn" id="btn-lupa-toolbar" onclick="verPdfSeleccionado()" title="Ver Carta + Factura" disabled>🔍</button>
+            
+            <span class="toolbar-count">{{ cartas|length }} reg.</span>
+        </div>
+        
+        <div class="list-items" id="lista-cartas">
+            {% for carta in cartas %}
+            <div class="list-item" id="item-{{ carta.id }}" onclick="seleccionarCarta({{ carta.id }})" data-search="{{ carta.correlativo_completo|lower }} {{ carta.destino|lower }} {{ carta.objeto|lower }}">
+                <div class="list-item-left">
+                    <span class="list-item-title">{{ carta.unidad_cites }} {{ carta.correlativo_completo }}</span>
+                    <span class="list-item-subtitle">{{ carta.destino|truncatechars:25 }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="padding: 20px; text-align: center; color: #888;">No hay registros.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- PANEL DERECHO -->
+    <div class="right-panel">
+        <div class="right-header">
+            <div class="right-title" id="panel-title">Detalle de la Carta</div>
+            <div class="view-toggles">
+                <button class="btn-view active" id="btn-view-detail" onclick="cambiarVista('detalle')">📄 Detalle</button>
+                <button class="btn-view" id="btn-view-excel" onclick="cambiarVista('excel')">📊 Vista Excel</button>
+            </div>
+        </div>
+
+        <div id="empty-state" class="empty-state">
+            <span style="font-size: 40px; margin-bottom: 10px;">📄</span>
+            <p>Selecciona una carta de la lista o cambia a Vista Excel</p>
+        </div>
+
+        <div id="detalle-contenido" style="display: none; height: 100%; flex-direction: column;">
+            <div class="details-body">
+                <div class="section-header">Datos Generales</div>
+                <div class="data-grid">
+                    <div class="data-row"><div class="data-label">Correlativo:</div><div class="data-value" id="det-correlativo" style="font-weight:bold; color:#0056b3;"></div></div>
+                    <div class="data-row"><div class="data-label">Estado:</div><div class="data-value" style="color: #28a745; font-weight: bold;">Generado</div></div>
+                    <div class="data-row"><div class="data-label">Destino:</div><div class="data-value" id="det-destino"></div></div>
+                    <div class="data-row"><div class="data-label">NIT:</div><div class="data-value" id="det-nit"></div></div>
+                    <div class="data-row"><div class="data-label">Fecha:</div><div class="data-value" id="det-fecha"></div></div>
+                    <div class="data-row"><div class="data-label">Monto:</div><div class="data-value" id="det-monto"></div></div>
+                    <div class="data-row"><div class="data-label">Nº Factura:</div><div class="data-value" id="det-nfactura"></div></div>
+                </div>
+                <div class="section-header">Referencia / Objeto</div>
+                <div style="font-size: 11px; padding: 5px; line-height: 1.4;" id="det-objeto"></div>
+                <div class="action-bar">
+                    <a href="#" id="btn-ver-pdf" target="_blank" class="btn-pdf">📄 Ver / Imprimir PDF (Carta + Factura)</a>
+                </div>
+            </div>
+        </div>
+
+        <div id="excel-view">
+            <table class="excel-table">
+                <thead>
+                    <tr>
+                        <th rowspan="2" style="width: 40px;">NRO</th>
+                        <th rowspan="2">UNIDAD</th>
+                        <th colspan="2">GERENCIA GENERAL</th>
+                        <th rowspan="2" style="width: 80px;">FECHA</th>
+                        <th rowspan="2">OBJETO</th>
+                    </tr>
+                    <tr>
+                        <th>CITES O SIGLAS</th>
+                        <th>DESTINO</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for carta in cartas %}
+                    <tr>
+                        <td class="center">{{ carta.numero }}</td>
+                        <td class="center">{{ carta.unidad_cites }}</td>
+                        <td class="center">{{ carta.unidad_cites }} No. {{ carta.numero|stringformat:"03d" }} {{ carta.gestion }}</td>
+                        <td>{{ carta.destino }}</td>
+                        <td class="center">{{ carta.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ carta.objeto }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const datosCartas = {
+        {% for carta in cartas %}
+        "{{ carta.id }}": {
+            correlativo: "{{ carta.unidad_cites|escapejs }} {{ carta.correlativo_completo|escapejs }}",
+            destino: "{{ carta.destino|escapejs }}",
+            nit: "{{ carta.nit|default:'S/N'|escapejs }}",
+            fecha: "{{ carta.fecha|date:'d/m/Y' }}",
+            monto: "Bs. {{ carta.monto|default:'0.00' }}",
+            nfactura: "{{ carta.numero_factura|default:'Sin factura'|escapejs }}",
+            objeto: "{{ carta.objeto|escapejs }}",
+            pdf_url: "{% url 'generar_pdf_carta' carta.id %}"
+        },
+        {% endfor %}
+    };
+
+    let vistaActual = 'detalle';
+    let pdfUrlActual = ""; // Variable para guardar la URL del PDF seleccionado
+
+    function cambiarVista(tipo) {
+        vistaActual = tipo;
+        if (tipo === 'excel') {
+            document.getElementById('excel-view').style.display = 'block';
+            document.getElementById('detalle-contenido').style.display = 'none';
+            document.getElementById('empty-state').style.display = 'none';
+            document.getElementById('panel-title').innerText = 'Libro de Correspondencia (Vista Excel)';
+            document.getElementById('btn-view-excel').classList.add('active');
+            document.getElementById('btn-view-detail').classList.remove('active');
+        } else {
+            document.getElementById('excel-view').style.display = 'none';
+            document.getElementById('btn-view-excel').classList.remove('active');
+            document.getElementById('btn-view-detail').classList.add('active');
+            document.getElementById('panel-title').innerText = 'Detalle de la Carta';
+            
+            const idSeleccionado = document.querySelector('.list-item.active');
+            if (idSeleccionado) {
+                document.getElementById('detalle-contenido').style.display = 'flex';
+                document.getElementById('empty-state').style.display = 'none';
+            } else {
+                document.getElementById('detalle-contenido').style.display = 'none';
+                document.getElementById('empty-state').style.display = 'flex';
+            }
+        }
+    }
+
+    function seleccionarCarta(id) {
+        document.querySelectorAll('.list-item').forEach(item => item.classList.remove('active'));
+        document.getElementById('item-' + id).classList.add('active');
+        
+        if (vistaActual === 'excel') {
+            cambiarVista('detalle');
+        }
+
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('detalle-contenido').style.display = 'flex';
+        
+        const data = datosCartas[id];
+        document.getElementById('det-correlativo').innerText = data.correlativo;
+        document.getElementById('det-destino').innerText = data.destino;
+        document.getElementById('det-nit').innerText = data.nit;
+        document.getElementById('det-fecha').innerText = data.fecha;
+        document.getElementById('det-monto').innerText = data.monto;
+        document.getElementById('det-nfactura').innerText = data.nfactura;
+        document.getElementById('det-objeto').innerText = data.objeto;
+        document.getElementById('btn-ver-pdf').href = data.pdf_url;
+        
+        // GUARDAMOS LA URL Y HABILITAMOS EL BOTÓN DE LA LUPA EN LA BARRA SUPERIOR
+        pdfUrlActual = data.pdf_url;
+        const btnLupa = document.getElementById('btn-lupa-toolbar');
+        btnLupa.disabled = false;
+    }
+
+    // FUNCIÓN QUE ABRE EL PDF DESDE LA LUPA DE LA BARRA SUPERIOR
+    function verPdfSeleccionado() {
+        if (pdfUrlActual) {
+            window.open(pdfUrlActual, '_blank');
+        }
+    }
+
+    function filtrarLista() {
+        const input = document.getElementById('search-input').value.toLowerCase();
+        document.querySelectorAll('.list-item').forEach(item => {
+            item.style.display = item.getAttribute('data-search').includes(input) ? 'flex' : 'none';
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}Mis Herramientas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- ESTILOS GENERALES CLÁSICOS --- */
+    body { background-color: #e6edf5; font-family: Tahoma, sans-serif; font-size: 11px; color: #000; }
+    
+    .master-detail-container { display: flex; height: 100%; width: 100%; gap: 0; }
+
+    /* --- PANEL IZQUIERDO (ANCHO EXACTO IGUAL A CLIENTES) --- */
+    .master-panel { 
+        width: 280px; /* <-- AQUÍ ESTÁ LA MAGIA: 280px PARA IGUALAR A CLIENTES */
+        min-width: 280px; 
+        max-width: 280px;
+        background: #ffffff; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    
+    .master-header { padding: 4px; background: #f0f4f8; border-bottom: 1px solid #a0b0c0; }
+    .search-form { display: flex; gap: 4px; margin-bottom: 4px; }
+    .search-box { flex-grow: 1; padding: 2px 4px; border: 1px solid #7f9db9; font-size: 11px; outline: none; }
+    .filter-select { padding: 2px; border: 1px solid #7f9db9; font-size: 11px; width: 85px; outline: none; }
+
+    /* BARRA DE HERRAMIENTAS */
+    .local-toolbar { display: flex; gap: 2px; padding: 2px; background: #e4e4e4; border: 1px solid #a0b0c0; align-items: center; height: 28px; }
+    .tool-btn { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: 2px; font-size: 12px; cursor: pointer; border: 1px solid #c0c0c0; text-decoration: none; color: #000; background: #ffffff; }
+    .tool-btn:hover { background: #dce6f0; border-color: #7f9db9; }
+    .tool-btn-disabled { opacity: 0.6; pointer-events: none; cursor: default; filter: grayscale(100%); background: #e4e4e4; border-color: #d0d0d0; box-shadow: inset 1px 1px 2px rgba(0,0,0,0.1); }
+
+    /* Lista de clientes */
+    .client-list { flex-grow: 1; overflow-y: auto; list-style: none; padding: 0; margin: 0; background: #ffffff; }
+    .client-item { padding: 4px 6px; border-bottom: 1px solid #f0f0f0; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+    .client-item:hover { background-color: #e6f0fa; }
+    .client-item.active { background-color: #316ac5; color: white; }
+    .client-item.active .client-name, .client-item.active .client-nit { color: white; }
+    .client-info { display: flex; flex-direction: column; overflow: hidden; }
+    .client-name { font-weight: normal; color: #000; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .client-nit { color: #555; font-size: 10px; }
+
+    /* --- LÍNEA DIVISORIA --- */
+    .resizer { width: 6px; background-color: #d4d0c8; cursor: col-resize; border-left: 1px solid #a0b0c0; border-right: 1px solid #ffffff; box-shadow: inset 1px 0 0 #f0f0f0; }
+    .resizer:hover { background-color: #c0c0c0; }
+
+    /* --- PANEL DERECHO --- */
+    .detail-panel { flex-grow: 1; background: #ffffff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; overflow-y: auto; }
+    .empty-state { display: flex; align-items: center; justify-content: center; height: 100%; color: #888; font-size: 11px; }
+    .detail-content { display: none; padding: 15px; }
+    
+    .detail-header { border-bottom: 1px solid #ccc; padding-bottom: 8px; margin-bottom: 15px; }
+    .detail-title h2 { margin: 0; color: #000; font-size: 16px; font-weight: normal; }
+    .detail-title p { margin: 3px 0 0 0; color: #333; font-size: 11px; }
+
+    .section-title { background: #d4d0c8; border: 1px solid #a0b0c0; padding: 3px 8px; font-size: 11px; font-weight: bold; color: #000; margin: 15px 0 10px 0; }
+
+    /* VISTA LECTURA */
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px 20px; margin-bottom: 15px; }
+    .info-row { display: flex; align-items: baseline; }
+    .info-row label { width: 100px; text-align: right; padding-right: 8px; font-size: 11px; color: #333; font-weight: bold; }
+    .info-row span { font-size: 11px; color: #000; }
+
+    .visual-identity-box { display: flex; align-items: center; gap: 20px; padding: 15px; border: 1px solid #a0b0c0; background: #f8fafc; }
+    .logo-large { width: 70px; height: 70px; border-radius: 2px; border: 1px solid #7f9db9; background: white; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+    .logo-large img { width: 100%; height: 100%; object-fit: contain; }
+    .color-info { display: flex; flex-direction: column; gap: 8px; }
+    .color-row { display: flex; align-items: center; gap: 10px; font-size: 11px; }
+    .color-circle { width: 16px; height: 16px; border-radius: 50%; border: 1px solid #7f9db9; }
+
+    /* CONFIGURACIÓN */
+    .config-layout { display: grid; grid-template-columns: 350px 1fr; gap: 20px; align-items: start; }
+    
+    .form-container { border: 1px solid #a0b0c0; padding: 15px; background: #f8fafc; }
+    .form-row { display: flex; align-items: center; margin-bottom: 12px; }
+    .form-row label { width: 120px; text-align: right; padding-right: 10px; font-size: 11px; }
+    .form-row input[type="file"] { flex-grow: 1; border: 1px solid #7f9db9; font-size: 11px; height: 22px; background: #fff; }
+    .form-row input[type="color"] { width: 60px; height: 24px; border: 1px solid #7f9db9; padding: 0; cursor: pointer; }
+    .checkbox-row { display: flex; align-items: center; margin-top: 10px; padding-left: 130px; }
+
+    /* EL IFRAME DE VISTA PREVIA */
+    .preview-container {
+        background: #a0a0a0;
+        border: 1px solid #777;
+        width: 100%;
+        height: 650px;
+        overflow: hidden;
+        position: relative;
+    }
+    .preview-iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        background: #ffffff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="master-detail-container">
+    
+    <!-- PANEL IZQUIERDO -->
+    <div class="master-panel" id="master-panel">
+        <div class="master-header">
+            <form method="GET" action="" class="search-form">
+                <input type="text" name="buscar" value="{{ busqueda }}" placeholder="Buscar..." class="search-box">
+                <select name="estado" onchange="this.form.submit()" class="filter-select">
+                    <option value="">Todos</option>
+                    <option value="activo" {% if estado_filtro == 'activo' %}selected{% endif %}>Activos</option>
+                    <option value="eventual" {% if estado_filtro == 'eventual' %}selected{% endif %}>Eventuales</option>
+                    <option value="inactivo" {% if estado_filtro == 'inactivo' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </form>
+
+            <div class="local-toolbar">
+                <a href="{% if cliente_editar %}?id={{ cliente_editar.id }}&accion=configurar{% else %}#{% endif %}" 
+                   class="tool-btn {% if not cliente_editar or accion != '' %}tool-btn-disabled{% endif %}" title="Configurar">⚙️</a>
+                <button type="button" class="tool-btn {% if not cliente_editar or accion != '' or not config %}tool-btn-disabled{% endif %}" 
+                        onclick="document.getElementById('excel-input-hidden').click();" title="Generar">📄</button>
+                <button type="submit" form="form-config" class="tool-btn {% if accion != 'configurar' %}tool-btn-disabled{% endif %}" style="color: #008000;" title="Guardar">💾</button>
+                <a href="{% if cliente_editar %}?id={{ cliente_editar.id }}{% else %}#{% endif %}" class="tool-btn {% if accion == '' %}tool-btn-disabled{% endif %}" style="color: #cc0000;" title="Cancelar">❌</a>
+                <div style="flex-grow:1; text-align:right; font-size:10px; color:#555;">{{ clientes|length }} reg.</div>
+            </div>
+            
+            {% if cliente_editar and config %}
+            <form id="form-generar-hidden" method="POST" enctype="multipart/form-data" style="display:none;">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="generar">
+                <input type="file" name="excel_file" id="excel-input-hidden" accept=".xlsx, .xls" onchange="this.form.submit();">
+            </form>
+            {% endif %}
+        </div>
+        
+        <ul class="client-list">
+            {% for cliente in clientes %}
+            <li class="client-item {% if cliente_editar.id == cliente.id %}active{% endif %}" onclick="window.location.href='?id={{ cliente.id }}'">
+                <div class="client-info">
+                    <span class="client-name">{{ cliente.razon_social }}</span>
+                    <span class="client-nit">NIT: {{ cliente.nit }}</span>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <!-- LÍNEA DIVISORIA -->
+    <div class="resizer" id="dragMe"></div>
+
+    <!-- PANEL DERECHO -->
+    <div class="detail-panel" id="detail-panel">
+        
+        <div class="empty-state" id="empty-state" style="{% if cliente_editar %}display:none;{% endif %}">
+            <p>👈 Selecciona un cliente de la lista para gestionar sus herramientas.</p>
+        </div>
+
+        {% if cliente_editar %}
+        <div class="detail-content" style="display:block;">
+            
+            <div class="detail-header">
+                <div class="detail-title">
+                    <h2>{{ cliente_editar.razon_social }}</h2>
+                    <p>NIT: {{ cliente_editar.nit }}</p>
+                </div>
+            </div>
+
+            <!-- 1. MODO VER (Con vista previa a la derecha) -->
+            {% if accion == '' %}
+                <div class="config-layout">
+                    <!-- Columna Izquierda: Datos del cliente -->
+                    <div>
+                        <div class="section-title">Información del Cliente</div>
+                        <div class="info-grid">
+                            <div class="info-row"><label>Representante:</label><span>{{ cliente_editar.representante_legal|default:"-" }}</span></div>
+                            <div class="info-row"><label>Teléfono:</label><span>{{ cliente_editar.telefono|default:"-" }}</span></div>
+                            <div class="info-row"><label>Dirección:</label><span>{{ cliente_editar.direccion|default:"-" }}</span></div>
+                            <div class="info-row"><label>Tipo Servicio:</label><span>{{ cliente_editar.tipo_servicio|default:"-" }}</span></div>
+                        </div>
+
+                        <div class="section-title">Identidad Visual</div>
+                        {% if config.logo or config.color_cabecera != '#0b2b5c' %}
+                            <div class="visual-identity-box">
+                                <div class="logo-large">
+                                    {% if config.logo %}<img src="{{ config.logo.url }}">{% else %}<span>🏢</span>{% endif %}
+                                </div>
+                                <div class="color-info">
+                                    <div class="color-row"><div class="color-circle" style="background-color: {{ config.color_cabecera }};"></div><span>Cabecera</span></div>
+                                    <div class="color-row"><div class="color-circle" style="background-color: {{ config.color_tabla }};"></div><span>Tabla</span></div>
+                                    <div class="color-row"><div class="color-circle" style="background-color: {{ config.color_neto }};"></div><span>Neto</span></div>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div style="padding: 15px; border: 1px solid #fecaca; background: #fee2e2; color: #991b1b; font-size: 11px;">
+                                Sin diseño configurado. Haz clic en ⚙️ para empezar.
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Columna Derecha: Vista Previa -->
+                    <div>
+                        <div class="section-title">Vista Previa</div>
+                        <div class="preview-container">
+                            <iframe src="{% url 'preview_boleta' cliente_editar.id %}" class="preview-iframe"></iframe>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- 2. MODO CONFIGURAR (Formulario a la izquierda, Iframe a la derecha) -->
+            {% if accion == 'configurar' %}
+                <form method="POST" enctype="multipart/form-data" id="form-config">
+                    {% csrf_token %}
+                    <input type="hidden" name="form_type" value="configurar">
+                    
+                    <div class="config-layout">
+                        <!-- COLUMNA IZQUIERDA: CONTROLES -->
+                        <div>
+                            <div class="section-title">1. Logo de la Empresa</div>
+                            <div class="form-container">
+                                <div class="form-row">
+                                    <label>Seleccionar Imagen:</label>
+                                    <input type="file" name="logo" accept="image/*">
+                                </div>
+                            </div>
+
+                            <div class="section-title">2. Colores del Documento</div>
+                            <div class="form-container">
+                                <div class="form-row">
+                                    <label>Color Cabecera:</label>
+                                    <input type="color" name="color_cabecera" id="color-cabecera" value="{{ config.color_cabecera }}" oninput="updatePreview()">
+                                </div>
+                                <div class="form-row">
+                                    <label>Color Tabla:</label>
+                                    <input type="color" name="color_tabla" id="color-tabla" value="{{ config.color_tabla }}" oninput="updatePreview()">
+                                </div>
+                                <div class="form-row">
+                                    <label>Color Sueldo Neto:</label>
+                                    <input type="color" name="color_neto" id="color-neto" value="{{ config.color_neto }}" oninput="updatePreview()">
+                                </div>
+                                <div class="checkbox-row">
+                                    <input type="checkbox" name="degradado" id="check-degradado" {% if config.degradado %}checked{% endif %}>
+                                    <label for="check-degradado">Aplicar degradado</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- COLUMNA DERECHA: IFRAME DE VISTA PREVIA -->
+                        <div>
+                            <div class="section-title">Vista Previa en Tiempo Real</div>
+                            <div class="preview-container">
+                                <iframe id="preview-iframe" src="{% url 'preview_boleta' cliente_editar.id %}" class="preview-iframe"></iframe>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- PROTECCIÓN PARA EL ERROR NoReverseMatch -->
+{% if cliente_editar %}
+<script>
+    // Función para actualizar el iframe cuando cambian los colores
+    function updatePreview() {
+        const colorCabecera = document.getElementById('color-cabecera').value.replace('#', '');
+        const colorTabla = document.getElementById('color-tabla').value.replace('#', '');
+        const colorNeto = document.getElementById('color-neto').value.replace('#', '');
+        
+        const baseUrl = "{% url 'preview_boleta' cliente_editar.id %}";
+        const newUrl = `${baseUrl}?color_cabecera=%23${colorCabecera}&color_tabla=%23${colorTabla}&color_neto=%23${colorNeto}`;
+        
+        document.getElementById('preview-iframe').src = newUrl;
+    }
+</script>
+{% endif %}
+
+<script>
+    // Lógica para hacer la línea divisoria arrastrable (siempre activa)
+    const resizer = document.getElementById('dragMe');
+    const leftSide = document.getElementById('master-panel');
+    
+    if (resizer && leftSide) {
+        let x = 0; let leftWidth = 0;
+
+        const mouseDownHandler = function(e) {
+            x = e.clientX;
+            leftWidth = leftSide.getBoundingClientRect().width;
+            document.addEventListener('mousemove', mouseMoveHandler);
+            document.addEventListener('mouseup', mouseUpHandler);
+        };
+
+        const mouseMoveHandler = function(e) {
+            const dx = e.clientX - x;
+            const newLeftWidth = leftWidth + dx;
+            // Ahora el límite empieza desde 280
+            if (newLeftWidth > 250 && newLeftWidth < 450) {
+                leftSide.style.width = `${newLeftWidth}px`;
+                document.body.style.cursor = 'col-resize';
+            }
+        };
+
+        const mouseUpHandler = function() {
+            document.body.style.cursor = 'default';
+            document.removeEventListener('mousemove', mouseMoveHandler);
+            document.removeEventListener('mouseup', mouseUpHandler);
+        };
+
+        resizer.addEventListener('mousedown', mouseDownHandler);
+    }
+</script>
+{% endblock %}

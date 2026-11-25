@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}Generar Boletas{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* --- DISEÑO DE DOS COLUMNAS (Más ajustado) --- */
+    .generator-layout {
+        display: grid;
+        grid-template-columns: 1.1fr 0.9fr; /* Formulario un poco más ancho que la vista previa */
+        gap: 20px; /* Reducido el espacio entre columnas */
+        max-width: 1000px; /* Contenedor más angosto para que no se estire de más */
+        margin: 0 auto;
+        align-items: start;
+    }
+
+    @media (max-width: 900px) {
+        .generator-layout { grid-template-columns: 1fr; }
+    }
+
+    /* --- TARJETA DEL FORMULARIO --- */
+    .card { 
+        background: white; padding: 20px; border-radius: 8px; /* Padding reducido */
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05); border: 1px solid #e2e8f0;
+    }
+    
+    h2 { color: #1e293b; margin-bottom: 5px; font-size: 18px; font-weight: 800; }
+    .subtitle { color: #64748b; margin-bottom: 20px; font-size: 12px; line-height: 1.4; }
+    
+    .form-group { margin-bottom: 15px; /* Margen reducido */ }
+    .form-group label { font-weight: 700; color: #475569; display: block; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    .form-select { 
+        width: 100%; padding: 8px 10px; border: 1px solid #cbd5e1; /* Input más delgado */
+        border-radius: 6px; font-size: 13px; outline: none; transition: 0.2s;
+        background-color: #f8fafc; font-weight: 500; color: #1e293b;
+    }
+    .form-select:focus { border-color: #3b82f6; background-color: white; box-shadow: 0 0 0 2px rgba(59,130,246,0.1); }
+
+    /* --- INPUT DE ARCHIVO COMPACTO --- */
+    .file-upload-wrapper { position: relative; }
+    input[type="file"] { display: none; }
+    
+    .file-upload-label {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        border: 1px dashed #94a3b8; padding: 20px 15px; /* Mucho más pequeño */
+        border-radius: 6px; background: #f8fafc; cursor: pointer; transition: all 0.2s ease;
+        text-align: center;
+    }
+    .file-upload-label:hover { background: #eff6ff; border-color: #3b82f6; }
+    .file-upload-label.has-file { background: #f0fdf4; border-color: #22c55e; border-style: solid; }
+
+    .upload-icon { font-size: 24px; margin-bottom: 5px; }
+    .upload-text { font-weight: bold; color: #1e293b; font-size: 12px; margin-bottom: 2px; }
+    .upload-subtext { font-size: 10px; color: #64748b; }
+    
+    /* --- BOTÓN GENERAR (Más pequeño) --- */
+    .btn { 
+        background: #059669; color: white; padding: 10px 15px; border: none; 
+        border-radius: 6px; font-weight: bold; cursor: pointer; width: 100%; 
+        font-size: 13px; transition: 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px;
+    }
+    .btn:hover { background: #047857; }
+    .btn:disabled { background: #cbd5e1; cursor: not-allowed; }
+
+    /* --- TARJETA DE VISTA PREVIA (Compacta) --- */
+    .preview-card {
+        background: white; border-radius: 8px; border: 1px solid #e2e8f0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05); overflow: hidden;
+        display: none;
+    }
+
+    .preview-header {
+        padding: 12px 15px; display: flex; align-items: center; gap: 10px;
+        border-bottom: 1px solid #e2e8f0; transition: background-color 0.4s;
+    }
+
+    .preview-logo {
+        width: 40px; height: 40px; border-radius: 6px; background: white;
+        border: 1px solid rgba(0,0,0,0.1); display: flex; align-items: center; 
+        justify-content: center; overflow: hidden; flex-shrink: 0;
+    }
+    .preview-logo img { width: 100%; height: 100%; object-fit: contain; padding: 2px; }
+    .preview-logo span { font-size: 18px; }
+
+    .preview-title { flex-grow: 1; transition: color 0.4s; }
+    .preview-title h3 { font-size: 13px; margin: 0; font-weight: 700; line-height: 1.2; }
+    .preview-title p { font-size: 10px; margin: 2px 0 0 0; opacity: 0.8; }
+
+    .preview-body { padding: 15px; }
+    .preview-line { 
+        height: 20px; background: #f1f5f9; border-radius: 4px; margin-bottom: 8px; 
+        display: flex; align-items: center; padding: 0 10px; font-size: 10px; color: #64748b;
+    }
+    
+    .preview-table-header {
+        height: 24px; margin: 12px 0 5px 0; border-radius: 4px;
+        display: flex; align-items: center; padding: 0 10px; color: white; font-weight: bold; font-size: 10px;
+        transition: background-color 0.4s;
+    }
+    
+    .preview-total {
+        margin-top: 12px; padding: 12px; border-radius: 6px; text-align: center;
+        border: 1px solid rgba(0,0,0,0.05); transition: background-color 0.4s, color 0.4s;
+    }
+    .preview-total span { display: block; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-bottom: 4px; }
+    .preview-total strong { font-size: 18px; }
+    
+    .color-palette { display: flex; gap: 10px; margin-top: 15px; padding-top: 10px; border-top: 1px dashed #e2e8f0; }
+    .color-box { flex: 1; text-align: center; }
+    .color-swatch { height: 20px; border-radius: 4px; margin-bottom: 4px; border: 1px solid rgba(0,0,0,0.1); }
+    .color-box small { font-size: 9px; color: #64748b; font-weight: 700; text-transform: uppercase;}
+
+    /* Placeholder */
+    .preview-placeholder {
+        background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px;
+        padding: 40px 20px; text-align: center; color: #94a3b8;
+    }
+    .preview-placeholder span { font-size: 30px; display: block; margin-bottom: 10px; opacity: 0.5; }
+    .preview-placeholder p { font-size: 12px; font-weight: 500; }
+
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="generator-layout">
+    
+    <!-- COLUMNA IZQUIERDA: EL FORMULARIO -->
+    <div class="card">
+        <h2>📄 Generar Boletas de Pago</h2>
+        <p class="subtitle">Selecciona un cliente y sube su planilla en formato Excel. El sistema aplicará automáticamente su identidad corporativa.</p>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div style="background: #fee2e2; color: #991b1b; padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-size: 12px; border-left: 3px solid #ef4444;">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data" id="boleta-form">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label>1. Selecciona el Cliente:</label>
+                <select name="cliente_id" id="select-cliente" class="form-select" required onchange="actualizarPreview()">
+                    <option value="" disabled selected>--- Seleccione un cliente ---</option>
+                    {% for c in clientes %}
+                        <option value="{{ c.id }}" 
+                                data-logo="{% if c.config_boleta.logo %}{{ c.config_boleta.logo.url }}{% endif %}"
+                                data-nombre="{{ c.razon_social }}"
+                                data-nit="{{ c.nit }}"
+                                data-cabecera="{{ c.config_boleta.color_cabecera }}"
+                                data-tabla="{{ c.config_boleta.color_tabla }}"
+                                data-neto="{{ c.config_boleta.color_neto }}">
+                            {{ c.razon_social }} ({{ c.nit }})
+                        </option>
+                    {% endfor %}
+                </select>
+                {% if not clientes %}
+                    <p style="color: #ef4444; font-size: 11px; margin-top: 5px;">⚠️ No hay clientes configurados.</p>
+                {% endif %}
+            </div>
+
+            <div class="form-group">
+                <label>2. Sube el archivo Excel:</label>
+                <div class="file-upload-wrapper">
+                    <input type="file" name="excel_file" id="excel_file" accept=".xlsx, .xls" required onchange="mostrarNombreArchivo(this)">
+                    
+                    <label for="excel_file" class="file-upload-label" id="upload-label">
+                        <span class="upload-icon" id="upload-icon">📁</span>
+                        <span class="upload-text" id="upload-text">Haz clic para buscar tu Excel</span>
+                        <span class="upload-subtext" id="upload-subtext">Formatos: .xlsx o .xls (Hoja "TABLA")</span>
+                    </label>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn" id="btn-generar" {% if not clientes %}disabled{% endif %}>
+                ⚡ Generar PDF
+            </button>
+        </form>
+    </div>
+
+    <!-- COLUMNA DERECHA: LA VISTA PREVIA -->
+    <div>
+        <div class="preview-placeholder" id="preview-placeholder">
+            <span>👁️</span>
+            <p>Selecciona un cliente para ver<br>su vista previa aquí.</p>
+        </div>
+
+        <div class="preview-card" id="preview-card">
+            <div class="preview-header" id="prev-header">
+                <div class="preview-logo" id="prev-logo-container"></div>
+                <div class="preview-title" id="prev-title-container">
+                    <h3 id="prev-nombre">Nombre del Cliente</h3>
+                    <p id="prev-nit">NIT: 000000</p>
+                </div>
+            </div>
+            
+            <div class="preview-body">
+                <div class="preview-line" style="width: 85%;">Datos del Trabajador</div>
+                <div class="preview-line" style="width: 65%;">Cargo / Sueldo Básico</div>
+                
+                <div class="preview-table-header" id="prev-table-header">
+                    INGRESOS Y EGRESOS
+                </div>
+                <div class="preview-line" style="border-radius: 0 0 4px 4px; margin-bottom: 5px;"></div>
+                
+                <div class="preview-total" id="prev-total">
+                    <span>💳 Sueldo Neto</span>
+                    <strong>Bs. 0.00</strong>
+                </div>
+
+                <div class="color-palette">
+                    <div class="color-box">
+                        <div class="color-swatch" id="swatch-cabecera"></div>
+                        <small>Cabecera</small>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-swatch" id="swatch-tabla"></div>
+                        <small>Tabla</small>
+                    </div>
+                    <div class="color-box">
+                        <div class="color-swatch" id="swatch-neto"></div>
+                        <small>Neto</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    function mostrarNombreArchivo(input) {
+        const label = document.getElementById('upload-label');
+        const text = document.getElementById('upload-text');
+        const subtext = document.getElementById('upload-subtext');
+        const icon = document.getElementById('upload-icon');
+
+        if (input.files && input.files.length > 0) {
+            text.innerText = input.files[0].name;
+            subtext.innerText = "¡Listo! Haz clic si deseas cambiarlo.";
+            icon.innerText = "✅";
+            label.classList.add('has-file');
+        }
+    }
+
+    function actualizarPreview() {
+        const select = document.getElementById('select-cliente');
+        const selectedOption = select.options[select.selectedIndex];
+        
+        if (!selectedOption || selectedOption.value === "") {
+            document.getElementById('preview-card').style.display = 'none';
+            document.getElementById('preview-placeholder').style.display = 'block';
+            return;
+        }
+
+        document.getElementById('preview-placeholder').style.display = 'none';
+        document.getElementById('preview-card').style.display = 'block';
+
+        const logoUrl = selectedOption.getAttribute('data-logo');
+        const nombre = selectedOption.getAttribute('data-nombre');
+        const nit = selectedOption.getAttribute('data-nit');
+        const colorCabecera = selectedOption.getAttribute('data-cabecera') || '#0b2b5c';
+        const colorTabla = selectedOption.getAttribute('data-tabla') || '#0b2b5c';
+        const colorNeto = selectedOption.getAttribute('data-neto') || '#eaf6ed';
+
+        const logoContainer = document.getElementById('prev-logo-container');
+        if (logoUrl) {
+            logoContainer.innerHTML = `<img src="${logoUrl}" alt="Logo">`;
+        } else {
+            logoContainer.innerHTML = `<span style="color: ${colorCabecera};">🏢</span>`;
+        }
+
+        document.getElementById('prev-nombre').innerText = nombre;
+        document.getElementById('prev-nit').innerText = "NIT: " + nit;
+
+        document.getElementById('prev-header').style.backgroundColor = colorCabecera;
+        document.getElementById('prev-title-container').style.color = esColorOscuro(colorCabecera) ? 'white' : '#1a202c';
+        
+        document.getElementById('prev-table-header').style.backgroundColor = colorTabla;
+        document.getElementById('prev-table-header').style.color = esColorOscuro(colorTabla) ? 'white' : '#1a202c';
+        
+        document.getElementById('prev-total').style.backgroundColor = colorNeto;
+        document.getElementById('prev-total').style.color = esColorOscuro(colorNeto) ? 'white' : '#1d4a2e';
+
+        document.getElementById('swatch-cabecera').style.backgroundColor = colorCabecera;
+        document.getElementById('swatch-tabla').style.backgroundColor = colorTabla;
+        document.getElementById('swatch-neto').style.backgroundColor = colorNeto;
+    }
+
+    function esColorOscuro(hex) {
+        if (!hex) return true;
+        const r = parseInt(hex.substr(1, 2), 16);
+        const g = parseInt(hex.substr(3, 2), 16);
+        const b = parseInt(hex.substr(5, 2), 16);
+        return ((0.299 * r + 0.587 * g + 0.114 * b) < 128);
+    }
+</script>
+{% endblock %}

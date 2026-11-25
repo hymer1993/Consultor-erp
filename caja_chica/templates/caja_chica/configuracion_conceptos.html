@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Cuentas Contables{% endblock %}
+{% block extra_css %}
+<style>
+    /* Contenedor principal idéntico a clientes */
+    .split-layout { display: flex; height: 100%; gap: 5px; overflow: hidden; background: #e6edf5; padding: 5px; }
+    
+    /* Panel Izquierdo (Ancho exacto al de clientes) */
+    .left-panel { 
+        width: 320px; 
+        background: #fff; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    
+    /* Panel Derecho (Fondo gris azulado cuando está vacío) */
+    .right-panel { 
+        flex-grow: 1; 
+        background: #e6edf5; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+        overflow-y: auto; 
+    }
+
+    /* Barra de búsqueda superior */
+    .search-bar { padding: 5px; background: #f0f0f0; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; }
+    .search-input { flex-grow: 1; padding: 3px; border: 1px solid #a0b0c0; font-size: 11px; }
+    .search-select { width: 80px; padding: 3px; border: 1px solid #a0b0c0; font-size: 11px; }
+
+    /* Barra de herramientas (Solo íconos) */
+    .toolbar { 
+        background: #f0f0f0; 
+        padding: 3px 5px; 
+        border-bottom: 1px solid #a0b0c0; 
+        display: flex; 
+        gap: 2px; 
+        align-items: center;
+    }
+    .toolbar-btn { 
+        background: transparent; 
+        border: 1px solid transparent; 
+        padding: 2px 5px; 
+        cursor: pointer; 
+        font-size: 14px; 
+        text-decoration: none; 
+        color: #000;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+    .toolbar-btn:hover:not(:disabled) { border: 1px solid #a0b0c0; background: #fff; }
+    .toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; border: 1px solid transparent; background: transparent; }
+    
+    /* Contador de registros */
+    .reg-count { margin-left: auto; font-size: 11px; color: #555; padding-right: 5px; }
+
+    /* Lista de Conceptos */
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 11px; padding: 4px 5px; }
+    .list-item { 
+        padding: 6px 8px; 
+        border-bottom: 1px solid #eee; 
+        cursor: pointer; 
+        font-size: 11px; 
+        display: flex; 
+        justify-content: space-between;
+    }
+    .list-item:hover { background: #f0f4f8; }
+    .list-item.active { background: #cce0ff; font-weight: bold; }
+
+    /* Estado Vacío */
+    .empty-state { 
+        flex-grow: 1; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        color: #64748b; 
+        font-size: 13px; 
+        font-style: italic;
+    }
+
+    /* Formulario */
+    .form-wrapper { background: #fff; flex-grow: 1; display: flex; flex-direction: column; }
+    .panel-header { 
+        background: #e0e8f0; 
+        padding: 5px 10px; 
+        border-bottom: 1px solid #a0b0c0; 
+        font-weight: bold; 
+        font-size: 11px;
+        color: #000;
+    }
+    
+    .form-container { padding: 10px; font-size: 11px; }
+    
+    .form-row { 
+        display: flex; 
+        gap: 5px; 
+        align-items: flex-end; 
+        background: #f9f9f9;
+        padding: 10px;
+        border: 1px solid #c0d0e0;
+    }
+    
+    .form-group { display: flex; flex-direction: column; }
+    .form-group label { font-weight: bold; margin-bottom: 3px; color: #333; font-size: 10px; }
+    .form-control { padding: 4px 5px; border: 1px solid #a0b0c0; font-size: 11px; width: 100%; box-sizing: border-box; height: 24px; }
+    /* Estilo cuando el input está deshabilitado (Modo lectura) */
+    .form-control:disabled { background: #e9ecef; color: #333; font-weight: bold; border-color: #ccc; }
+
+    .section-title { font-weight: bold; color: #1f4e79; margin-bottom: 5px; font-size: 11px; text-transform: uppercase; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    
+    <!-- ================= PANEL IZQUIERDO ================= -->
+    <div class="left-panel">
+        
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Buscar..." disabled>
+            <select class="search-select" disabled><option>Todos</option></select>
+        </div>
+
+        <div class="toolbar">
+            <!-- Botón Nuevo: Siempre habilitado -->
+            <a href="?accion=nuevo" class="toolbar-btn" title="Nuevo Concepto">➕</a>
+            
+            <!-- Botón Guardar: Solo habilitado si estamos creando o editando -->
+            <button type="submit" form="form-concepto" class="toolbar-btn" title="Guardar" 
+                    {% if accion != 'nuevo' and accion != 'editar' %}disabled{% endif %}>💾</button>
+            
+            <!-- Botón Cancelar: Solo habilitado si estamos creando o editando -->
+            <a href="{% if concepto_id %}?id={{ concepto_id }}{% else %}{% url 'configuracion_conceptos' %}{% endif %}" 
+               class="toolbar-btn" title="Cancelar" 
+               {% if accion != 'nuevo' and accion != 'editar' %}style="opacity:0.3; pointer-events:none;"{% endif %}>❌</a>
+
+            <!-- Botón Editar: Solo habilitado si hay un registro seleccionado y NO estamos editando -->
+            <a href="{% if concepto_id %}?id={{ concepto_id }}&accion=editar{% else %}#{% endif %}" 
+               class="toolbar-btn" title="Editar" 
+               {% if not concepto_id or accion == 'editar' or accion == 'nuevo' %}style="opacity:0.3; pointer-events:none;"{% endif %}>✏️</a>
+
+            <!-- Botón Eliminar -->
+            <form method="POST" style="margin: 0; display: inline;" onsubmit="return confirm('¿Estás seguro de eliminar este concepto?');">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="eliminar">
+                <button type="submit" class="toolbar-btn" title="Eliminar" 
+                        {% if not concepto_id or accion == 'nuevo' %}disabled{% endif %}>🗑️</button>
+            </form>
+            
+            <span class="reg-count">{{ conceptos.count }} reg.</span>
+        </div>
+        
+        <div class="list-header">
+            <span>Concepto de Gasto</span>
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto;">
+            {% for c in conceptos %}
+                <!-- Al hacer clic, solo pasamos el ?id=... -->
+                <div class="list-item {% if concepto_id|stringformat:'s' == c.id|stringformat:'s' %}active{% endif %}" 
+                     onclick="window.location.href='?id={{ c.id }}'">
+                    <span>{{ c.nombre }}</span>
+                </div>
+            {% empty %}
+                <div style="padding: 10px; font-size: 11px; color: #666; text-align: center;">No hay conceptos configurados.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- ================= PANEL DERECHO ================= -->
+    <div class="right-panel">
+        
+        {% if concepto_id or accion == 'nuevo' %}
+            <div class="form-wrapper">
+                <div class="panel-header">
+                    {% if accion == 'nuevo' %}
+                        NUEVO CONCEPTO CONTABLE
+                    {% elif accion == 'editar' %}
+                        EDITANDO CONCEPTO: {{ concepto_seleccionado.nombre|upper }}
+                    {% else %}
+                        DATOS DEL CONCEPTO: {{ concepto_seleccionado.nombre|upper }}
+                    {% endif %}
+                </div>
+
+                <div class="form-container">
+                    <div class="section-title">Datos del Concepto</div>
+                    
+                    <form method="POST" id="form-concepto">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="guardar">
+                        
+                        <div class="form-row">
+                            <div class="form-group" style="flex: 2;">
+                                <label>Concepto de Gasto</label>
+                                <!-- Los inputs se deshabilitan si NO estamos en modo editar o nuevo -->
+                                <input type="text" name="nombre" class="form-control" value="{{ concepto_seleccionado.nombre|default:'' }}" placeholder="Ej: Combustible" 
+                                       {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %} required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Código Debe</label>
+                                <input type="text" name="codigo_debe" class="form-control" value="{{ codigo_debe_edit }}" placeholder="510100" 
+                                       {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %} required>
+                            </div>
+                            <div class="form-group" style="flex: 2;">
+                                <label>Cuenta Debe (Gasto)</label>
+                                <input type="text" name="nombre_debe" class="form-control" value="{{ nombre_debe_edit }}" placeholder="Gastos Generales" 
+                                       {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %} required>
+                            </div>
+                            <div class="form-group" style="flex: 1;">
+                                <label>Código Haber</label>
+                                <input type="text" name="codigo_haber" class="form-control" value="{{ codigo_haber_edit|default:'110100' }}" placeholder="110100" 
+                                       {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %} required>
+                            </div>
+                            <div class="form-group" style="flex: 2;">
+                                <label>Cuenta Haber (Pago)</label>
+                                <input type="text" name="nombre_haber" class="form-control" value="{{ nombre_haber_edit|default:'Caja Chica' }}" placeholder="Caja Chica" 
+                                       {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %} required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                👉 Selecciona un concepto de la lista o crea uno nuevo.
+            </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

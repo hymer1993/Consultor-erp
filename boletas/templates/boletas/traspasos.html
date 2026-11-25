@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block title %}Asientos de Traspasos{% endblock %}
+
+{% block extra_css %}
+<style>
+    body { background-color: #e6edf5; font-family: Tahoma, sans-serif; font-size: 11px; }
+    .container { max-width: 600px; margin: 30px auto; background: #ffffff; border: 1px solid #a0b0c0; padding: 20px; }
+    h2 { font-size: 14px; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px; color: #0056b3; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-weight: bold; margin-bottom: 5px; }
+    .form-control { width: 100%; padding: 5px; border: 1px solid #7f9db9; font-size: 11px; }
+    .btn { background: #e4e4e4; border: 1px solid #a0b0c0; padding: 5px 15px; cursor: pointer; font-size: 11px; font-weight: bold; }
+    .btn:hover { background: #dce6f0; }
+    .alert-danger { background: #fee2e2; color: #991b1b; padding: 10px; margin-bottom: 15px; border: 1px solid #fecaca; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>🔄 Generar Asientos de Traspasos</h2>
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert-danger">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    <form method="POST" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>1. Seleccionar archivo Excel (Debe tener las hojas: REPORTE, CUENTA, UFV):</label>
+            <input type="file" name="excel_file" class="form-control" accept=".xlsx, .xls" required>
+        </div>
+
+        <div class="form-group">
+            <label>2. Número de inicio del comprobante:</label>
+            <input type="number" name="num_inicio" class="form-control" value="1" min="1" required>
+        </div>
+
+        <button type="submit" class="btn">⚡ Procesar y Descargar</button>
+        <a href="/herramientas/" class="btn" style="text-decoration:none; color:black;">Cancelar</a>
+    </form>
+</div>
+{% endblock %}

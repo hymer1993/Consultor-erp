@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+{% block title %}{% if usuario %}Editar{% else %}Nuevo{% endif %} Usuario{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Contenedor centrado */
+    .form-wrapper { display: flex; justify-content: center; padding: 20px; width: 100%; height: 100%; overflow-y: auto; }
+    
+    /* Tarjeta clásica estilo sistema */
+    .form-card { 
+        background: #ffffff; 
+        border: 1px solid #a0b0c0; 
+        width: 100%; 
+        max-width: 500px; 
+        height: fit-content;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    /* Cabecera de la tarjeta */
+    .form-header { 
+        background: #f0f4f8; 
+        border-bottom: 1px solid #a0b0c0; 
+        padding: 8px 15px; 
+        font-weight: bold; 
+        font-size: 12px; 
+        color: #0056b3;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    /* Cuerpo */
+    .form-body { padding: 20px; }
+    
+    /* Grupos de campos */
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; font-weight: bold; color: #333; margin-bottom: 4px; font-size: 11px; font-family: Tahoma, 'Segoe UI', sans-serif; }
+    
+    .form-control { 
+        width: 100%; 
+        padding: 5px 8px; 
+        border: 1px solid #a0b0c0; 
+        border-radius: 2px; 
+        font-size: 11px; 
+        font-family: Tahoma, 'Segoe UI', sans-serif;
+        color: #000;
+        box-sizing: border-box;
+    }
+    .form-control:focus { outline: none; border-color: #0056b3; }
+    
+    .help-text { font-size: 10px; color: #666; margin-top: 4px; display: block; font-family: Tahoma; }
+    
+    /* Checkbox */
+    .checkbox-group { display: flex; align-items: center; gap: 8px; margin-top: 15px; padding: 10px; background: #f8fafc; border: 1px solid #e2e8f0; }
+    .checkbox-group input[type="checkbox"] { margin: 0; cursor: pointer; }
+    .checkbox-group label { margin: 0; cursor: pointer; font-weight: bold; color: #333; font-size: 11px; font-family: Tahoma;}
+    
+    /* Footer con botones */
+    .form-footer { 
+        padding: 10px 20px; 
+        border-top: 1px solid #a0b0c0; 
+        background: #f0f4f8; 
+        display: flex; 
+        justify-content: flex-end; 
+        gap: 10px; 
+    }
+    
+    /* Botones clásicos */
+    .btn { 
+        padding: 5px 15px; 
+        font-size: 11px; 
+        font-family: Tahoma, 'Segoe UI', sans-serif; 
+        font-weight: bold; 
+        cursor: pointer; 
+        border: 1px solid #a0b0c0; 
+        border-radius: 2px;
+    }
+    .btn-primary { background: #e0e0e0; color: #000; }
+    .btn-primary:hover { background: #d0d0d0; border-color: #808080; }
+    .btn-secondary { background: #ffffff; color: #333; text-decoration: none; display: inline-flex; align-items: center;}
+    .btn-secondary:hover { background: #f0f0f0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-wrapper">
+    <div class="form-card">
+        
+        <div class="form-header">
+            {% if usuario %} ✏️ Editar Usuario: {{ usuario.username }} {% else %} 👤 Registrar Nuevo Usuario {% endif %}
+        </div>
+
+        <form method="POST">
+            {% csrf_token %}
+            
+            <div class="form-body">
+                <!-- 🔥 NUEVOS CAMPOS DE NOMBRE Y APELLIDO 🔥 -->
+                <div class="form-group">
+                    <label>Nombres:</label>
+                    <input type="text" name="first_name" class="form-control" value="{{ usuario.first_name|default:'' }}" placeholder="Ej. Daniel Alexis">
+                </div>
+
+                <div class="form-group">
+                    <label>Apellidos:</label>
+                    <input type="text" name="last_name" class="form-control" value="{{ usuario.last_name|default:'' }}" placeholder="Ej. Malia Sativañez">
+                </div>
+                <!-- 🔥 FIN NUEVOS CAMPOS 🔥 -->
+
+                <div class="form-group">
+                    <label>Nombre de Usuario (Para iniciar sesión):</label>
+                    <input type="text" name="username" class="form-control" value="{{ usuario.username|default:'' }}" required placeholder="Ej. juan.perez">
+                </div>
+
+                <div class="form-group">
+                    <label>Correo Electrónico:</label>
+                    <input type="email" name="email" class="form-control" value="{{ usuario.email|default:'' }}" placeholder="correo@empresa.com">
+                </div>
+
+                <div class="form-group">
+                    <label>Contraseña:</label>
+                    <input type="password" name="password" class="form-control" {% if not usuario %}required{% endif %} placeholder="••••••••">
+                    {% if usuario %}
+                        <span class="help-text">Deja este campo en blanco si NO deseas cambiar la contraseña actual.</span>
+                    {% else %}
+                        <span class="help-text">Crea una contraseña para el nuevo usuario.</span>
+                    {% endif %}
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" name="is_active" id="is_active" {% if not usuario or usuario.is_active %}checked{% endif %}>
+                    <label for="is_active">Usuario Activo (Permitir inicio de sesión)</label>
+                </div>
+            </div>
+
+            <div class="form-footer">
+                <a href="{% url 'lista_usuarios' %}" class="btn btn-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary">💾 Guardar Datos</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

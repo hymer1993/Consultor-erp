@@ -1,0 +1,716 @@
+{% extends "base.html" %}
+{% block title %}Caja Chica{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* =========================================================
+       ESTILOS DEL PANEL IZQUIERDO
+       ========================================================= */
+    .split-layout { display: flex; height: 100%; gap: 5px; overflow: hidden; background: #e6edf5; padding: 5px; }
+    
+    .left-panel { 
+        width: 280px; 
+        min-width: 280px;
+        background: #fff; 
+        border: 1px solid #a0b0c0; 
+        display: flex; 
+        flex-direction: column; 
+    }
+    
+    .search-bar { padding: 5px; background: #f0f0f0; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; }
+    .search-input { flex-grow: 1; padding: 3px; border: 1px solid #a0b0c0; font-size: 11px; }
+    .search-select { width: 80px; padding: 3px; border: 1px solid #a0b0c0; font-size: 11px; }
+
+    .toolbar { 
+        background: #f0f0f0; 
+        padding: 4px 5px; 
+        border-bottom: 1px solid #a0b0c0; 
+        display: flex; 
+        gap: 1px; 
+        align-items: center; 
+        flex-wrap: nowrap; 
+        overflow-x: auto; 
+    }
+    .toolbar-btn { 
+        background: transparent; 
+        border: 1px solid transparent; 
+        padding: 3px 4px; 
+        cursor: pointer; 
+        font-size: 13px; 
+        text-decoration: none; 
+        color: #000; 
+        display: inline-flex; 
+        align-items: center; 
+        justify-content: center; 
+        line-height: 1; 
+        border-radius: 3px;
+    }
+    .toolbar-btn:hover:not(:disabled) { border: 1px solid #a0b0c0; background: #fff; }
+    .toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; border: 1px solid transparent; background: transparent; }
+    .toolbar-btn-danger { color: #dc2626; }
+    .toolbar-btn-success { color: #10b981; }
+
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 11px; padding: 4px 5px; }
+    .list-item { padding: 6px 8px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+    .list-item:hover { background: #f0f4f8; }
+    .list-item.active { background: #cce0ff; font-weight: bold; }
+    
+    .badge-estado { padding: 2px 6px; border-radius: 10px; font-size: 9px; font-weight: bold; }
+    .bg-activo { background: #d1fae5; color: #065f46; }
+    .bg-anulado { background: #fee2e2; color: #991b1b; }
+    .bg-pendiente { background: #fef08a; color: #854d0e; }
+    .bg-cerrado { background: #e2e8f0; color: #475569; }
+    .empty-state { flex-grow: 1; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 13px; font-style: italic; }
+
+    .client-info { flex: 1; min-width: 0; padding-right: 5px; }
+    .client-name { font-weight: bold; color: #1e293b; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .client-nit { color: #64748b; font-size: 10px; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+    /* =========================================================
+       ESTILOS DEL PANEL DERECHO
+       ========================================================= */
+    .right-panel { flex-grow: 1; background: #cbd5e1; border: 1px solid #a0b0c0; display: flex; flex-direction: column; overflow-y: auto; padding: 20px; align-items: center; }
+    .paper-doc input, .paper-doc select, .paper-doc label, .paper-doc h1, .paper-doc h2, .paper-doc h3, .paper-doc textarea { text-transform: uppercase !important; }
+    .paper-doc { background: #ffffff; width: 100%; max-width: 800px; padding: 30px 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); border: 1px solid #94a3b8; margin: 0 auto; position: relative; }
+    
+    .header-doc { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #1f4e79; padding-bottom: 10px; }
+    .logo-area { flex: 1; display: flex; align-items: center; gap: 15px; }
+    .logo-area img { height: 65px; width: auto; max-width: 120px; object-fit: contain; }
+    .logo-area h2 { margin: 0; font-size: 14px; font-weight: 800; color: #1f4e79; line-height: 1.2; }
+    .logo-area p { margin: 2px 0; font-size: 9px; color: #333; font-weight: 600;}
+    
+    .titulo-area { flex: 0 0 auto; text-align: center; padding: 0 15px; }
+    .titulo-area h1 { margin: 0; font-size: 18px; font-weight: 800; letter-spacing: 1px;}
+    .titulo-area h3 { margin: 2px 0 0 0; font-size: 14px; color: #dc2626; font-weight: bold;}
+
+    .monto-box { flex: 1; display: flex; flex-direction: column; align-items: flex-end; }
+    .monto-box label { font-size: 10px; font-weight: bold; color: #475569; margin-bottom: 2px;}
+    .monto-input-top { font-size: 18px; font-weight: 800; color: #000; border: 2px solid #facc15; background: #fef9c3; padding: 4px 10px; width: 120px; text-align: right; outline: none; }
+    .monto-input-top:read-only { background: #fef9c3; color: #000; }
+    .monto-input-top::-webkit-outer-spin-button, .monto-input-top::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
+    .tabla-fecha { display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-end; justify-content: flex-start; width: 100%; }
+    .fecha-col { display: flex; flex-direction: column; align-items: center; }
+    .fecha-col label { font-weight: 700; font-size: 10px; color: #1e3a8a; margin-bottom: 2px;}
+    .fecha-col input { text-align: center; border: 1px solid #94a3b8; background: #fef9c3; padding: 3px; font-weight: bold; font-size: 11px; outline: none; width: 50px; }
+    .fecha-col input[name="lugar"], .fecha-col input[name="lugar_sol"] { width: 100px; } 
+
+    .fila-doc { display: flex; align-items: flex-start; margin-bottom: 12px; width: 100%; }
+    .fila-doc label { font-weight: 700; font-size: 11px; color: #1e3a8a; width: 110px; flex-shrink: 0; padding-top: 3px; white-space: nowrap; }
+    .fila-doc input, .fila-doc textarea, .fila-doc select { flex: 1; width: 100%; border: none; border-bottom: 1.5px dotted #333; background: transparent; font-size: 12px; font-weight: bold; padding: 2px 5px; outline: none; font-family: 'Segoe UI', sans-serif; min-height: 22px; box-sizing: border-box; line-height: 1.3; }
+    .fila-doc textarea { resize: none; overflow: hidden; height: 22px; }
+    .fila-doc input:focus, .fila-doc textarea:focus, .fila-doc select:focus { background-color: #f8fafc; }
+
+    .fila-doble { display: flex; gap: 20px; width: 100%; }
+
+    .bloques-totales-row { display: flex; gap: 15px; margin: 15px 0; align-items: center; }
+    .bloque-total { display: flex; align-items: center; gap: 8px; flex: 1;}
+    .bloque-total label { font-weight: 700; font-size: 11px; color: #1e3a8a; white-space: nowrap; }
+    .bloque-total input { width: 100%; border: 1px solid #94a3b8; background: #fef9c3; padding: 5px; font-weight: bold; text-align: right; font-size: 12px; outline: none;}
+    .bloque-total input[readonly] { background: #f8fafc; }
+
+    .control-row { display: flex; justify-content: space-between; align-items: center; margin: 10px 0; background: #f8fafc; padding: 8px; border-radius: 4px; border: 1px dashed #cbd5e1;}
+    .control-group { display: flex; align-items: center; gap: 5px; }
+    .control-group label { font-weight: 700; font-size: 11px; color: #1e3a8a;}
+    .control-group input[type="text"], .control-group select { border: 1px solid #94a3b8; background: #fef9c3; padding: 3px 6px; font-weight: bold; font-size: 11px; outline:none;}
+
+    .tabla-impuestos { width: 100%; border-collapse: collapse; margin: 10px 0; }
+    .tabla-impuestos th { background: #fef08a; border: 1px solid #000; padding: 4px; font-weight: 700; font-size: 10px; text-align: center;}
+    .tabla-impuestos td { border: 1px solid #000; padding: 0; }
+    .tabla-impuestos input { width: 100%; border: none; background: transparent; padding: 6px; text-align: center; font-weight: 700; font-size: 12px; outline:none;}
+    .tabla-impuestos td.highlight { background: #fef9c3; }
+
+    .config-box { margin-top: 15px; padding: 10px; border: 1px dashed #cbd5e1; background: #f8fafc; border-radius: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px;}
+    .config-box label { font-weight: 700; font-size: 10px; color: #475569; display: block; margin-bottom: 3px; }
+    .config-box select { width: 100%; padding: 4px; border: 1px solid #cbd5e1; border-radius: 4px; font-size: 11px; outline:none;}
+    .chk-cobro { display: flex; align-items: center; gap: 5px; padding: 6px; background: #fff; border: 1px solid #fca5a5; border-radius: 4px; grid-column: span 2;}
+
+    .firmas-doc { display: flex; justify-content: space-around; margin-top: 40px; }
+    .firma-block { width: 40%; text-align: center; }
+    .firma-linea { border-top: 1px solid #000; margin-bottom: 5px; }
+    .firma-texto { font-weight: 700; font-size: 11px; color: #1f4e79; }
+    .firma-nombre { font-size: 10px; color: #333; margin-top: 2px; font-weight: bold;}
+
+    .doc-actions-icons { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; border-top: 1px solid #cbd5e1; padding-top: 15px; }
+    .icon-btn { background: #e0e8f0; border: 1px solid #a0b0c0; border-radius: 4px; padding: 6px 12px; font-size: 16px; cursor: pointer; text-decoration: none; color: #000; display: inline-flex; align-items: center; justify-content: center; transition: 0.2s; }
+    .icon-btn:hover { background: #cbd5e1; border-color: #94a3b8; }
+
+    /* =========================================================
+       ESTILOS DE LA VENTANA MODAL (PARA EL RANGO)
+       ========================================================= */
+    .modal-overlay {
+        display: none; /* Oculto por defecto */
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    .modal-box {
+        background: #fff;
+        padding: 20px 25px;
+        border-radius: 6px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        width: 350px;
+        border: 1px solid #a0b0c0;
+    }
+    .modal-title {
+        font-size: 16px;
+        font-weight: bold;
+        color: #1f4e79;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #cbd5e1;
+        padding-bottom: 10px;
+    }
+    .modal-group {
+        margin-bottom: 15px;
+    }
+    .modal-group label {
+        display: block;
+        font-size: 11px;
+        font-weight: bold;
+        color: #333;
+        margin-bottom: 5px;
+    }
+    .modal-input {
+        width: 100%;
+        padding: 6px;
+        border: 1px solid #a0b0c0;
+        border-radius: 4px;
+        font-size: 12px;
+        outline: none;
+    }
+    .modal-input:focus { border-color: #2563eb; }
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 20px;
+    }
+    .btn-modal {
+        padding: 6px 15px;
+        border: 1px solid #a0b0c0;
+        background: #fff;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    .btn-modal:hover { background: #f0f0f0; }
+    .btn-modal-primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+    .btn-modal-primary:hover { background: #1e40af; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    
+    <!-- ================= PANEL IZQUIERDO DINÁMICO ================= -->
+    <div class="left-panel">
+        
+        <div class="search-bar">
+            <input type="text" class="search-input" placeholder="Buscar..." disabled>
+            <select class="search-select" disabled><option>Todos</option></select>
+        </div>
+
+        <div class="toolbar">
+            {% if accion == 'solicitud' or accion == 'nueva_solicitud' or accion == 'editar_solicitud' %}
+                <a href="?accion=nueva_solicitud" class="toolbar-btn" title="Nueva Solicitud">➕</a>
+                <a href="{% if solicitud_editar %}?accion=editar_solicitud&id_sol={{ solicitud_editar.id }}{% else %}#{% endif %}" 
+                   class="toolbar-btn" title="Editar Solicitud" 
+                   {% if not solicitud_editar or accion == 'editar_solicitud' or accion == 'nueva_solicitud' or solicitud_editar.estado == 'rendida' %}disabled{% endif %}>✏️</a>
+                <button type="submit" form="form-solicitud" class="toolbar-btn" title="Guardar" 
+                        {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}disabled{% endif %}>💾</button>
+                <a href="/caja-chica/?accion=solicitud" class="toolbar-btn" title="Cancelar" 
+                   {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}style="opacity:0.3; pointer-events:none;"{% endif %}>❌</a>
+                <button type="submit" form="form-cerrar-solicitud" class="toolbar-btn toolbar-btn-success" title="Cerrar Solicitud (Dinero Recibido)" 
+                        {% if not solicitud_editar or solicitud_editar.estado == 'rendida' or accion == 'editar_solicitud' or accion == 'nueva_solicitud' %}disabled{% endif %} 
+                        onclick="return confirm('¿Cerrar esta solicitud? Esto indica que el dinero ya fue entregado.');">✅</button>
+                
+                <a href="{% if solicitud_editar %}{% url 'imprimir_solicitud_pdf' solicitud_editar.id %}{% else %}#{% endif %}" target="_blank" class="toolbar-btn" title="Imprimir Solicitud de Fondos" {% if not solicitud_editar %}style="opacity: 0.3; pointer-events: none;"{% endif %}>🖨️</a>
+
+            {% else %}
+                <a href="?accion=nuevo" class="toolbar-btn" title="Nuevo Recibo">➕</a>
+                <a href="{% if recibo_editar %}?id={{ recibo_editar.id }}&accion=editar{% else %}#{% endif %}" class="toolbar-btn" title="Editar" {% if not recibo_editar or recibo_editar.estado == 'anulado' or accion == 'editar' or accion == 'nuevo' %}disabled{% endif %}>✏️</a>
+                <button type="submit" form="form-recibo" class="toolbar-btn" title="Guardar" {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}>💾</button>
+                <a href="{% if recibo_editar %}?id={{ recibo_editar.id }}{% else %}/caja-chica/{% endif %}" class="toolbar-btn" title="Cancelar" {% if accion != 'editar' and accion != 'nuevo' %}style="opacity:0.3; pointer-events:none;"{% endif %}>❌</a>
+                <button type="submit" form="form-anular" class="toolbar-btn toolbar-btn-danger" title="Anular" {% if not recibo_editar or recibo_editar.estado == 'anulado' or accion == 'editar' or accion == 'nuevo' %}disabled{% endif %} onclick="return confirm('¿Anular este recibo?');">🚫</button>
+                
+                {% if recibo_editar and recibo_editar.estado == 'anulado' %}
+                    <a href="{% url 'desanular_recibo' recibo_editar.id %}" class="toolbar-btn toolbar-btn-success" title="Reactivar Recibo Anulado" onclick="return confirm('¿Estás seguro de reactivar este recibo?');">♻️</a>
+                {% else %}
+                    <button type="button" class="toolbar-btn toolbar-btn-success" title="Reactivar Recibo Anulado" disabled>♻️</button>
+                {% endif %}
+                
+                <a href="{% if recibo_editar %}{% url 'imprimir_recibo_pdf' recibo_editar.id 'orig_copia' %}{% else %}#{% endif %}" 
+                   target="_blank" class="toolbar-btn" title="Imprimir Original y Copia en 1 Hoja"
+                   {% if not recibo_editar or accion == 'nuevo' %}style="opacity:0.3; pointer-events:none;"{% endif %}>
+                    📄
+                </a>
+                
+                <a href="{% if recibo_editar %}{% url 'imprimir_recibo_pdf' recibo_editar.id 'lote' %}{% else %}#{% endif %}" 
+                   target="_blank" class="toolbar-btn" title="Imprimir 2 Correlativos en 1 Hoja"
+                   {% if not recibo_editar or accion == 'nuevo' %}style="opacity:0.3; pointer-events:none;"{% endif %}>
+                    🖨️
+                </a>
+
+                <a href="#" class="toolbar-btn" title="Imprimir Rango de Recibos" onclick="mostrarModalRango(event)">📑</a>
+            {% endif %}
+        </div>
+        
+        <div class="list-header">
+            {% if accion == 'solicitud' or accion == 'nueva_solicitud' or accion == 'editar_solicitud' %} <span>Solicitudes de Fondos</span> {% else %} <span>Recibos</span> {% endif %}
+        </div>
+        
+        <div style="flex-grow: 1; overflow-y: auto;">
+            {% if accion == 'solicitud' or accion == 'nueva_solicitud' or accion == 'editar_solicitud' %}
+                {% for sol in solicitudes %}
+                    <div class="list-item {% if solicitud_editar.id == sol.id %}active{% endif %}" onclick="window.location.href='?accion=solicitud&id_sol={{ sol.id }}'">
+                        <div class="client-info">
+                            <div class="client-name">{{ sol.numero_solicitud }}</div>
+                            <div class="client-nit">{{ sol.solicitante.username }} | Bs. {{ sol.importe_solicitado }}</div>
+                        </div>
+                        <div>
+                            {% if sol.estado == 'abierta' %}<span class="badge-estado bg-pendiente">Abierta</span>
+                            {% else %}<span class="badge-estado bg-cerrado">Cerrada</span>{% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div style="padding: 10px; font-size: 11px; color: #666; text-align: center;">No hay solicitudes.</div>
+                {% endfor %}
+            {% else %}
+                {% for rec in recibos %}
+                    <div class="list-item {% if recibo_editar.id == rec.id %}active{% endif %}" onclick="window.location.href='?id={{ rec.id }}'">
+                        <div class="client-info">
+                            <div class="client-name">{{ rec.numero }}</div>
+                            <div class="client-nit">{{ rec.tercero_nombre }} | Bs. {{ rec.total_pagado }}</div>
+                        </div>
+                        <div>
+                            {% if rec.estado == 'activo' %}<span class="badge-estado bg-activo">Activo</span>
+                            {% else %}<span class="badge-estado bg-anulado">Anulado</span>{% endif %}
+                        </div>
+                    </div>
+                {% empty %}
+                    <div style="padding: 10px; font-size: 11px; color: #666; text-align: center;">No hay recibos.</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ================= PANEL DERECHO ================= -->
+    <div class="right-panel">
+        
+        <!-- ESTADO VACÍO SOLICITUD -->
+        {% if accion == 'solicitud' and not solicitud_editar %}
+            <div class="empty-state">👉 Selecciona una solicitud de la lista o crea una nueva.</div>
+        {% endif %}
+
+        <!-- ESTADO VACÍO RECIBO -->
+        {% if not recibo_editar and accion != 'nuevo' and accion != 'solicitud' and accion != 'nueva_solicitud' and accion != 'editar_solicitud' %}
+            <div class="empty-state">👉 Selecciona un recibo de la lista o crea uno nuevo.</div>
+        {% endif %}
+
+        <!-- 1. FORMULARIO DE SOLICITUD DE FONDOS -->
+        {% if accion == 'nueva_solicitud' or solicitud_editar %}
+        <div class="paper-doc">
+            <div class="header-doc">
+                <div class="logo-area">
+                    {% if config_empresa.logo %}<img src="{{ config_empresa.logo.url }}" alt="Logo">{% endif %}
+                    <div>
+                        <h2>{{ config_empresa.nombre }}</h2>
+                        <p>NIT: {{ config_empresa.nit }}</p>
+                        <p>{{ config_empresa.direccion }}</p>
+                    </div>
+                </div>
+                <div class="titulo-area">
+                    <h1>SOLICITUD DE FONDOS</h1>
+                    <h3 style="color: #1f4e79;">N° {% if solicitud_editar %}{{ solicitud_editar.numero_solicitud }}{% else %}{{ proximo_numero_sol }}{% endif %}</h3>
+                </div>
+                <div class="monto-box">
+                    <label>MONTO SOLICITADO</label>
+                    <input type="text" name="importe_solicitado" id="in_monto_sol" form="form-solicitud" class="monto-input-top" 
+                           value="{{ solicitud_editar.importe_solicitado|default:'' }}" oninput="calcularLiteral()" required 
+                           {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                </div>
+            </div>
+
+            <form method="POST" id="form-solicitud">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="guardar_solicitud">
+                
+                <div class="tabla-fecha">
+                    <div class="fecha-col">
+                        <label>Lugar</label>
+                        <input type="text" name="lugar_sol" value="SANTA CRUZ" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                    </div>
+                    <div class="fecha-col">
+                        <label>Día</label>
+                        <input type="number" name="dia_sol" value="{% if solicitud_editar %}{{ solicitud_editar.fecha_solicitud|date:'d' }}{% else %}{{ dia_actual }}{% endif %}" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                    </div>
+                    <div class="fecha-col">
+                        <label>Mes</label>
+                        <input type="number" name="mes_sol" value="{% if solicitud_editar %}{{ solicitud_editar.fecha_solicitud|date:'m' }}{% else %}{{ mes_actual }}{% endif %}" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                    </div>
+                    <div class="fecha-col">
+                        <label>Año</label>
+                        <input type="number" name="anio_sol" value="{% if solicitud_editar %}{{ solicitud_editar.fecha_solicitud|date:'Y' }}{% else %}{{ anio_actual }}{% endif %}" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                <div class="fila-doc">
+                    <label>Solicitante:</label>
+                    <!-- 🔥 MODIFICADO: Ahora usa el nombre completo del usuario logueado -->
+                    <input type="text" name="solicitante_nombre" list="lista_usuarios" 
+                           value="{% if solicitud_editar %}{{ solicitud_editar.solicitante.get_full_name|default:solicitud_editar.solicitante.username }}{% else %}{{ user.get_full_name|default:user.username }}{% endif %}" 
+                           placeholder="Escriba o seleccione" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %} autocomplete="off">
+                    
+                    <datalist id="lista_usuarios">
+                        {% for u in usuarios %}
+                            <option value="{{ u.username }}"></option>
+                        {% endfor %}
+                    </datalist>
+                </div>
+
+                <div class="fila-doc">
+                    <label>La suma de:</label>
+                    <input type="text" id="lbl_literal_sol" value="" readonly style="font-style: italic;">
+                </div>
+
+                <div class="fila-doc">
+                    <label>Área / Depto:</label>
+                    <input type="text" name="area" value="{{ solicitud_editar.area|default:'' }}" required placeholder="Escriba el área que solicita" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                </div>
+
+                <div class="fila-doc">
+                    <label>Dirigido a:</label>
+                    <input type="text" name="proveedor" value="{{ solicitud_editar.proveedor|default:'' }}" required placeholder="Persona o Empresa a quien se pagará" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>
+                </div>
+
+                <div class="fila-doc">
+                    <label>Motivo:</label>
+                    <textarea name="motivo_gasto" oninput="autoResize(this)" required placeholder="Describa para qué se utilizarán los fondos" {% if accion != 'editar_solicitud' and accion != 'nueva_solicitud' %}readonly{% endif %}>{{ solicitud_editar.motivo_gasto|default:'' }}</textarea>
+                </div>
+
+                <div class="firmas-doc" style="margin-top: 40px;">
+                    <div class="firma-block">
+                        <div class="firma-linea"></div>
+                        <div class="firma-texto">Firma del Solicitante</div>
+                        <!-- 🔥 MODIFICADO: Nombre completo en la firma -->
+                        <div class="firma-nombre">{% if solicitud_editar %}{{ solicitud_editar.solicitante.get_full_name|default:solicitud_editar.solicitante.username }}{% else %}{{ user.get_full_name|default:user.username }}{% endif %}</div>
+                    </div>
+                    <div class="firma-block">
+                        <div class="firma-linea"></div>
+                        <div class="firma-texto">Autorizado Por</div>
+                    </div>
+                </div>
+
+                {% if accion == 'editar_solicitud' or accion == 'nueva_solicitud' %}
+                <div class="doc-actions-icons">
+                    <a href="/caja-chica/?accion=solicitud" class="icon-btn" title="Cancelar">❌</a>
+                    <button type="submit" class="icon-btn" title="Guardar Solicitud" style="background: #d1fae5; border-color: #10b981;">💾</button>
+                </div>
+                {% endif %}
+            </form>
+
+            <form id="form-cerrar-solicitud" method="POST" style="display:none;">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="cerrar_solicitud">
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- 2. FORMULARIO DE RECIBO -->
+        {% if recibo_editar or accion == 'nuevo' %}
+        <div class="paper-doc">
+            <form method="POST" id="form-recibo">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="guardar_recibo">
+                
+                <div class="header-doc">
+                    <div class="logo-area">
+                        {% if config_empresa.logo %}<img src="{{ config_empresa.logo.url }}" alt="Logo">{% endif %}
+                        <div>
+                            <h2>{{ config_empresa.nombre }}</h2>
+                            <p>NIT: {{ config_empresa.nit }}</p>
+                            <p>{{ config_empresa.direccion }}</p>
+                        </div>
+                    </div>
+                    <div class="titulo-area">
+                        <h1>RECIBO - PAGOS</h1>
+                        <h3>{{ proximo_numero }}</h3>
+                    </div>
+                    <div class="monto-box">
+                        <label>MONTO PAGADO</label>
+                        <input type="text" id="in_monto_top" class="monto-input-top" value="{{ recibo_editar.total_pagado|default:'' }}" oninput="syncMontoTop()" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                <div class="tabla-fecha">
+                    <div class="fecha-col"><label>Lugar</label><input type="text" name="lugar" value="{{ recibo_editar.lugar|default:'Santa Cruz' }}" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}></div>
+                    <div class="fecha-col"><label>Día</label><input type="number" name="dia" value="{{ dia_actual }}" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}></div>
+                    <div class="fecha-col"><label>Mes</label><input type="number" name="mes" value="{{ mes_actual }}" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}></div>
+                    <div class="fecha-col"><label>Año</label><input type="number" name="anio" value="{{ anio_actual }}" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}></div>
+                </div>
+
+                <div class="fila-doble">
+                    <div class="fila-doc" style="flex: 2;">
+                        <label>Pagado a:</label>
+                        <!-- 🔥 MODIFICADO: Ahora llena el campo con el nombre completo del usuario logueado si es un recibo nuevo -->
+                        <input type="text" name="tercero_nombre" value="{% if recibo_editar %}{{ recibo_editar.tercero_nombre }}{% else %}{{ request.user.get_full_name|default:request.user.username }}{% endif %}" required {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>
+                    </div>
+                    <div class="fila-doc" style="flex: 1;">
+                        <label style="width: 35px;">C.I.:</label>
+                        <input type="text" name="nit_ci" value="{{ recibo_editar.nit_ci|default:'' }}" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>
+                    </div>
+                </div>
+
+                <div class="fila-doc">
+                    <label>La suma de:</label>
+                    <input type="text" id="lbl_literal" value="" readonly style="font-style: italic;">
+                </div>
+
+                <div class="fila-doc">
+                    <label>Concepto de:</label>
+                    <textarea name="concepto" id="txt_concepto" oninput="autoResize(this)" required {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>{{ recibo_editar.concepto|default:'' }}</textarea>
+                </div>
+
+                <div class="bloques-totales-row">
+                    <div class="bloque-total">
+                        <label>A cuenta:</label>
+                        <input type="text" name="imp_total" id="in_imp_total" value="{{ recibo_editar.total_bruto|default:'' }}" oninput="calcular()" {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>
+                    </div>
+                    <div class="bloque-total">
+                        <label>Saldo:</label>
+                        <input type="text" value="0.00" readonly>
+                    </div>
+                    <div class="bloque-total">
+                        <label>Total:</label>
+                        <input type="text" name="total_pagado" id="in_imp_pagado" value="{{ recibo_editar.total_pagado|default:'' }}" readonly>
+                    </div>
+                </div>
+
+                <div class="control-row">
+                    <div class="control-group">
+                        <label><input type="checkbox" name="tiene_factura" id="chk_factura" onchange="toggleFactura()" {% if recibo_editar.factura_nro %}checked{% endif %} {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}> Factura N°:</label>
+                        <input type="text" name="factura_nro" id="in_factura" value="{{ recibo_editar.factura_nro|default:'' }}" style="width: 80px;" {% if not recibo_editar.factura_nro and accion != 'nuevo' %}disabled{% endif %} {% if accion != 'editar' and accion != 'nuevo' %}readonly{% endif %}>
+                    </div>
+                    <div class="control-group">
+                        <label>Retención:</label>
+                        <select name="tipo_retencion" id="sel_retencion" onchange="calcular()" {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}>
+                            <option value="ninguna" {% if recibo_editar.tipo_retencion == 'ninguna' or not recibo_editar %}selected{% endif %}>No Aplica</option>
+                            <option value="servicios" {% if recibo_editar.tipo_retencion == 'servicios' %}selected{% endif %}>Servicios (13% + 3%)</option>
+                            <option value="bienes" {% if recibo_editar.tipo_retencion == 'bienes' %}selected{% endif %}>Bienes (5% + 3%)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <table class="tabla-impuestos">
+                    <thead>
+                        <tr><th>Importe total</th><th>Retención RC-IVA 13%</th><th>Retención IUE 5%</th><th>Retención IT 3%</th><th>Importe pagado</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="highlight"><input type="text" name="imp_total_calc" id="in_calc_total" value="{{ recibo_editar.total_bruto|default:'0' }}" readonly></td>
+                            <td><input type="text" name="ret_iva" id="in_ret_iva" value="{{ recibo_editar.retencion_rc_iva|default:'0' }}" readonly></td>
+                            <td><input type="text" name="ret_iue" id="in_ret_iue" value="{{ recibo_editar.retencion_iue|default:'0' }}" readonly></td>
+                            <td><input type="text" name="ret_it" id="in_ret_it" value="{{ recibo_editar.retencion_it|default:'0' }}" readonly></td>
+                            <td class="highlight"><input type="text" name="imp_pagado_calc" id="in_calc_pagado" value="{{ recibo_editar.total_pagado|default:'0' }}" readonly></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="config-box">
+                    <div>
+                        <label>Concepto Contable:</label>
+                        <select name="concepto_gasto_id" {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}>
+                            <option value="">-- Seleccionar --</option>
+                            {% for cg in conceptos_gasto %}
+                                <option value="{{ cg.id }}" {% if recibo_editar.concepto_gasto_id == cg.id %}selected{% endif %}>{{ cg.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="chk-cobro" style="grid-column: span 1; margin-top: 0;">
+                        <input type="checkbox" name="asumido_por_cliente" id="chk_asumido" {% if recibo_editar.asumido_por_cliente %}checked{% endif %} style="width: 16px; height: 16px; cursor: pointer;" {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}>
+                        <label for="chk_asumido" style="margin: 0; color: #dc2626; cursor: pointer; font-weight: 800; font-size: 10px;">¿Cobrar al cliente?</label>
+                        <select name="cliente_id" style="width: 100%; padding: 3px; margin-left: 5px; font-size: 10px;" {% if accion != 'editar' and accion != 'nuevo' %}disabled{% endif %}>
+                            <option value="">-- Cliente --</option>
+                            {% for cli in clientes %}
+                                <option value="{{ cli.id }}" {% if recibo_editar.cliente_id == cli.id %}selected{% endif %}>{{ cli.razon_social }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="firmas-doc">
+                    <div class="firma-block"><div class="firma-linea"></div><div class="firma-texto">Entregue conforme</div></div>
+                    <div class="firma-block"><div class="firma-linea"></div><div class="firma-texto">Recibi conforme</div><div class="firma-nombre">{{ recibo_editar.tercero_nombre|default:'' }}</div><div class="firma-nombre">{{ recibo_editar.nit_ci|default:'' }}</div></div>
+                </div>
+            </form>
+            
+            <form id="form-anular" method="POST" style="display:none;">
+                {% csrf_token %}
+                <input type="hidden" name="form_type" value="anular_recibo">
+            </form>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- =========================================================
+     VENTANA MODAL PROFESIONAL PARA IMPRIMIR POR RANGO
+     ========================================================= -->
+<div id="modal-rango" class="modal-overlay">
+    <div class="modal-box">
+        <div class="modal-title">Imprimir Recibos por Rango</div>
+        
+        <div class="modal-group">
+            <label>Nº de Recibo Inicial (Ej: 1):</label>
+            <input type="number" id="rango-inicio" class="modal-input" placeholder="Ej: 1" min="1" required>
+        </div>
+        
+        <div class="modal-group">
+            <label>Nº de Recibo Final (Ej: 5):</label>
+            <input type="number" id="rango-fin" class="modal-input" placeholder="Ej: 5" min="1" required>
+        </div>
+
+        <div class="modal-group">
+            <label>Formato de Impresión:</label>
+            <select id="rango-modo" class="modal-input">
+                <option value="correlativo">2 Recibos Correlativos (Ej: REC-1 y REC-2)</option>
+                <option value="orig_copia">Original y Copia del mismo recibo</option>
+            </select>
+        </div>
+        
+        <div class="modal-actions">
+            <button class="btn-modal" onclick="cerrarModalRango()">Cancelar</button>
+            <button class="btn-modal btn-modal-primary" onclick="procesarRango()">Generar PDF</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    function autoResize(element) {
+        element.style.height = '22px'; 
+        element.style.height = element.scrollHeight + 'px'; 
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const txtConcepto = document.getElementById('txt_concepto');
+        if (txtConcepto) autoResize(txtConcepto);
+
+        const txtMotivo = document.querySelector('textarea[name="motivo_gasto"]');
+        if (txtMotivo) autoResize(txtMotivo);
+
+        const montoTop = document.getElementById('in_monto_top');
+        if (montoTop && montoTop.value) {
+            syncMontoTop();
+        } else {
+            const impTotal = document.getElementById('in_imp_total');
+            if (impTotal && impTotal.value) calcular();
+        }
+        
+        const montoSol = document.getElementById('in_monto_sol');
+        if (montoSol && montoSol.value.trim() !== '') calcularLiteral();
+    });
+
+    function numeroALetras(num) {
+        const unidades = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+        const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+        const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+        let entero = Math.floor(num); let centavos = Math.round((num - entero) * 100);
+        function convertir(n) {
+            if (n === 0) return "CERO"; if (n < 10) return unidades[n]; 
+            if (n < 20) { const esp = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE']; return esp[n - 10]; }
+            if (n < 100) { let dec = Math.floor(n / 10); let uni = n % 10; return decenas[dec] + (uni > 0 ? " Y " + unidades[uni] : ""); }
+            if (n < 1000) { let cen = Math.floor(n / 100); let resto = n % 100; return (n === 100 ? "CIEN" : centenas[cen]) + (resto > 0 ? " " + convertir(resto) : ""); }
+            if (n < 1000000) { let miles = Math.floor(n / 1000); let resto = n % 1000; return (miles === 1 ? "MIL" : convertir(miles) + " MIL") + (resto > 0 ? " " + convertir(resto) : ""); }
+            return "MONTO EXCEDIDO";
+        }
+        return `${convertir(entero)} ${centavos.toString().padStart(2, '0')}/100 BOLIVIANOS`.toUpperCase();
+    }
+
+    function calcularLiteral() {
+        let montoSolStr = document.getElementById('in_monto_sol').value;
+        if (!montoSolStr) { document.getElementById('lbl_literal_sol').value = ''; return; }
+        let montoSol = parseFloat(montoSolStr.replace(',', '.')) || 0;
+        document.getElementById('lbl_literal_sol').value = numeroALetras(montoSol);
+    }
+
+    function calcular() {
+        let brutoStr = document.getElementById('in_imp_total').value;
+        let bruto = parseFloat(brutoStr.replace(',', '.')) || 0; 
+        
+        let tipoRet = document.getElementById('sel_retencion').value; 
+        let retIva = 0, retIue = 0, retIt = 0, pagado = 0;
+        
+        if (tipoRet === 'ninguna' || bruto === 0) { 
+            pagado = bruto; 
+        } else if (tipoRet === 'servicios') { 
+            retIva = bruto * 0.13; retIt = bruto * 0.03; pagado = bruto - retIva - retIt; 
+        } else if (tipoRet === 'bienes') { 
+            retIue = bruto * 0.05; retIt = bruto * 0.03; pagado = bruto - retIue - retIt; 
+        }
+        
+        document.getElementById('in_ret_iva').value = retIva.toFixed(2); 
+        document.getElementById('in_ret_iue').value = retIue.toFixed(2); 
+        document.getElementById('in_ret_it').value = retIt.toFixed(2);
+        
+        document.getElementById('in_calc_total').value = bruto.toFixed(2); 
+        document.getElementById('in_calc_pagado').value = pagado.toFixed(2);
+        
+        document.getElementById('in_imp_pagado').value = pagado.toFixed(2); 
+        document.getElementById('in_monto_top').value = pagado.toFixed(2); 
+        
+        document.getElementById('lbl_literal').value = numeroALetras(pagado);
+    }
+
+    function syncMontoTop() {
+        let pagadoTopStr = document.getElementById('in_monto_top').value;
+        let pagadoTop = parseFloat(pagadoTopStr.replace(',', '.')) || 0; 
+        
+        let tipoRet = document.getElementById('sel_retencion').value; 
+        let bruto = pagadoTop;
+        
+        if (tipoRet === 'servicios') { 
+            bruto = pagadoTop / (1 - 0.16); 
+        } else if (tipoRet === 'bienes') { 
+            bruto = pagadoTop / (1 - 0.08); 
+        }
+        
+        document.getElementById('in_imp_total').value = bruto.toFixed(2); 
+        calcular(); 
+    }
+
+    function toggleFactura() {
+        let chk = document.getElementById('chk_factura'); let input = document.getElementById('in_factura');
+        input.disabled = !chk.checked; if(!chk.checked) input.value = "";
+    }
+
+    function mostrarModalRango(event) {
+        event.preventDefault(); 
+        document.getElementById('modal-rango').style.display = 'flex';
+        document.getElementById('rango-inicio').focus();
+    }
+
+    function cerrarModalRango() {
+        document.getElementById('modal-rango').style.display = 'none';
+        document.getElementById('rango-inicio').value = '';
+        document.getElementById('rango-fin').value = '';
+    }
+
+    function procesarRango() {
+        let inicio = document.getElementById('rango-inicio').value;
+        let fin = document.getElementById('rango-fin').value;
+        let modo = document.getElementById('rango-modo').value;
+
+        if (!inicio || !fin) {
+            alert("Por favor, ingrese ambos números de ID.");
+            return;
+        }
+
+        window.open(`{% url 'imprimir_recibo_rango' %}?inicio=${inicio}&fin=${fin}&modo=${modo}`, '_blank');
+        cerrarModalRango();
+    }
+</script>
+{% endblock %}

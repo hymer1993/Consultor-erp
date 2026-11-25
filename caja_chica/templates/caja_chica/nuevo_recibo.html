@@ -1,0 +1,229 @@
+{% extends "base.html" %}
+
+{% block title %}Nuevo Recibo - Caja Chica{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Contenedor principal del recibo (fondo blanco, bordes clásicos) */
+    .recibo-panel {
+        background: #ffffff;
+        border: 1px solid #a0b0c0;
+        margin: 10px auto;
+        max-width: 950px;
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+
+    /* Cabecera del recibo */
+    .header-recibo { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 2px solid #d4d0c8; padding-bottom: 10px; }
+    .logo-empresa { display: flex; flex-direction: column; }
+    .logo-empresa h2 { color: #1f4e79; font-size: 20px; margin: 0; font-weight: bold; }
+    .logo-empresa small { color: #d9534f; font-style: italic; font-size: 12px; }
+    
+    .titulo-recibo { text-align: center; }
+    .titulo-recibo h1 { color: #1f4e79; font-size: 24px; margin: 0; text-transform: uppercase; font-weight: bold; }
+    .titulo-recibo h3 { font-size: 16px; margin: 5px 0 0 0; color: #333; }
+
+    /* Monto principal (arriba a la derecha) */
+    .monto-grande { text-align: right; font-size: 22px; font-weight: bold; color: #1f4e79; margin-bottom: 15px; }
+    .monto-grande span { border: 1px solid #a0b0c0; padding: 5px 15px; background: #fdf9f0; border-radius: 4px; }
+
+    /* Tablas clásicas */
+    .tabla-fecha { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
+    .tabla-fecha th, .tabla-fecha td { border: 1px solid #a0b0c0; padding: 6px; text-align: center; font-size: 12px; }
+    .tabla-fecha th { background-color: #d4d0c8; color: #000; font-weight: bold; }
+    .tabla-fecha input { width: 100%; border: none; text-align: center; font-family: Tahoma; font-size: 12px; background: transparent; outline: none; }
+    
+    /* Campos con línea punteada */
+    .campo-linea { display: flex; align-items: center; margin-bottom: 12px; font-size: 12px; }
+    .campo-linea label { width: 110px; font-weight: bold; color: #1f4e79; }
+    .campo-linea input, .campo-linea select { flex-grow: 1; border: none; border-bottom: 1px dotted #7f9db9; background: transparent; padding: 4px; font-family: Tahoma; font-size: 12px; outline: none; }
+    .campo-linea input:focus, .campo-linea select:focus { background-color: #fdf9f0; }
+
+    /* Totales centrales (A cuenta, saldo, total) */
+    .totales-grid { display: flex; justify-content: space-between; margin-bottom: 15px; background: #fdf9f0; padding: 10px; border: 1px solid #a0b0c0; }
+    .totales-grid div { display: flex; align-items: center; gap: 10px; font-weight: bold; color: #1f4e79; font-size: 12px; }
+    .totales-grid input { width: 110px; border: none; border-bottom: 1px solid #7f9db9; background: transparent; text-align: right; font-weight: bold; color: #333; outline: none; }
+    
+    /* Checkboxes */
+    .checkboxes { display: flex; justify-content: space-around; margin-bottom: 20px; font-weight: bold; color: #1f4e79; font-size: 12px; }
+    .checkboxes label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+    .checkboxes input[type="checkbox"] { cursor: pointer; }
+
+    /* Tabla de Impuestos y Pagos */
+    .tabla-impuestos { width: 100%; border-collapse: collapse; margin-bottom: 25px; text-align: center; }
+    .tabla-impuestos th, .tabla-impuestos td { border: 1px solid #a0b0c0; padding: 8px; }
+    .tabla-impuestos th { background-color: #d4d0c8; color: #000; font-weight: bold; font-size: 11px; }
+    .tabla-impuestos input { width: 100%; border: none; text-align: center; background: transparent; font-weight: bold; font-family: Tahoma; font-size: 13px; outline: none; color: #1f4e79; }
+
+    /* Sección Caja Chica (abajo) */
+    .caja-chica-box { border-top: 1px dashed #a0b0c0; padding-top: 15px; margin-bottom: 20px; background: #f8fafc; padding: 15px; border: 1px solid #e2e8f0; }
+    .caja-chica-box h4 { color: #1f4e79; margin-bottom: 15px; font-size: 13px; text-transform: uppercase; }
+
+    /* Botones clásicos */
+    .form-actions { text-align: right; margin-top: 20px; padding-top: 15px; border-top: 1px solid #a0b0c0; }
+    .btn-classic { background: #e4e4e4; border: 1px solid #a0b0c0; padding: 6px 15px; font-size: 12px; font-family: Tahoma; color: #000; cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; gap: 5px; border-radius: 3px; }
+    .btn-classic:hover { background: #dce6f0; border-color: #7f9db9; }
+    .btn-save { background: #d1fae5; border-color: #059669; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="recibo-panel">
+    <form method="POST">
+        {% csrf_token %}
+        
+        <!-- Cabecera -->
+        <div class="header-recibo">
+            <div class="logo-empresa">
+                <h2>J&A ASOCIADOS S.R.L.</h2>
+                <small>Auditores y Consultores Empresariales</small>
+            </div>
+            <div class="titulo-recibo">
+                <h1>RECIBO - PAGOS</h1>
+                <h3>{{ proximo_numero }}</h3>
+            </div>
+        </div>
+
+        <!-- Monto Principal -->
+        <div class="monto-grande">
+            Bs <span id="lbl_total">0.00</span>
+        </div>
+
+        <!-- Fecha -->
+        <table class="tabla-fecha">
+            <tr>
+                <th>Lugar</th>
+                <th>Dia</th>
+                <th>Mes</th>
+                <th>Año</th>
+            </tr>
+            <tr>
+                <td><input type="text" name="lugar" value="Santa Cruz"></td>
+                <td><input type="number" name="dia" value="{{ dia_actual }}"></td>
+                <td><input type="number" name="mes" value="{{ mes_actual }}"></td>
+                <td><input type="number" name="anio" value="{{ anio_actual }}"></td>
+            </tr>
+        </table>
+
+        <!-- Datos del Pago -->
+        <div class="campo-linea">
+            <label>Pagado a:</label>
+            <input type="text" name="tercero_nombre" required>
+        </div>
+        <div class="campo-linea" style="justify-content: flex-end;">
+            <label style="width: 50px;">C.I.:</label>
+            <input type="text" name="nit_ci" style="flex-grow: 0; width: 250px;">
+        </div>
+        <div class="campo-linea">
+            <label>La suma de:</label>
+            <input type="text" id="lbl_literal" readonly style="font-style: italic;">
+        </div>
+        <div class="campo-linea">
+            <label>Concepto de:</label>
+            <input type="text" name="concepto" required>
+        </div>
+
+        <!-- Totales parciales -->
+        <div class="totales-grid">
+            <div>A cuenta: <input type="number" step="0.01" name="total_bruto" id="in_bruto" oninput="calcular()"></div>
+            <div>Saldo: <input type="number" value="0.00" readonly></div>
+            <div>Total: <input type="number" step="0.01" name="total_pagado" id="in_pagado" readonly></div>
+        </div>
+
+        <!-- Checkboxes -->
+        <div class="checkboxes">
+            <label><input type="checkbox" name="tiene_factura" id="chk_factura" onchange="toggleFactura()"> N°: <input type="text" name="factura_nro" id="in_factura" style="width: 80px; margin-left: 5px; border: 1px solid #a0b0c0;" disabled> Factura</label>
+            <label><input type="checkbox" checked disabled> N° {{ proximo_numero }} Recibo</label>
+            <label><input type="checkbox" name="sin_retencion" id="chk_sin_ret" onchange="calcular()"> sin retencion</label>
+        </div>
+
+        <!-- Tabla de Impuestos -->
+        <table class="tabla-impuestos">
+            <tr>
+                <th>Importe total</th>
+                <th>Retencion RC-IVA 13%</th>
+                <th>Retencion IUE 5%</th>
+                <th>Retencion IT 3%</th>
+                <th>Importe pagado</th>
+            </tr>
+            <tr>
+                <td><input type="number" step="0.01" name="imp_total" id="in_imp_total" oninput="calcular()"></td>
+                <td><input type="number" step="0.01" name="ret_iva" id="in_ret_iva" readonly></td>
+                <td><input type="number" step="0.01" name="ret_iue" id="in_ret_iue" readonly></td>
+                <td><input type="number" step="0.01" name="ret_it" id="in_ret_it" readonly></td>
+                <td><input type="number" step="0.01" name="imp_pagado" id="in_imp_pagado" readonly></td>
+            </tr>
+        </table>
+
+        <!-- Caja Chica / Carta Cobro -->
+        <div class="caja-chica-box">
+            <h4>Configuración Caja Chica / Carta de Cobro</h4>
+            <div class="campo-linea">
+                <label>Vincular a Solicitud:</label>
+                <select name="solicitud_id">
+                    <option value="">-- No vincular --</option>
+                    {% for sol in solicitudes %}
+                        <option value="{{ sol.id }}">Caja Chica #{{ sol.id }} (Monto: Bs. {{ sol.monto_asignado }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="campo-linea">
+                <label>Cliente a Cobrar:</label>
+                <select name="cliente_id">
+                    <option value="">-- Gasto propio (No cobrar) --</option>
+                    {% for cli in clientes %}
+                        <option value="{{ cli.id }}">{{ cli.razon_social }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="campo-linea" style="padding-left: 110px; margin-top: 10px;">
+                <label style="width: auto; cursor: pointer;"><input type="checkbox" name="es_reembolsable"> ¿Este gasto se cobrará al cliente? (Generar Carta de Cobro)</label>
+            </div>
+        </div>
+
+        <!-- Botones Guardar / Cancelar -->
+        <div class="form-actions">
+            <a href="/inicio/" class="btn-classic">Cancelar</a>
+            <button type="submit" class="btn-classic btn-save">💾 Guardar Recibo</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    // Funciones para calcular retenciones automáticamente
+    function calcular() {
+        let bruto = parseFloat(document.getElementById('in_imp_total').value) || 0;
+        let sinRetencion = document.getElementById('chk_sin_ret').checked;
+        
+        let retIva = 0, retIue = 0, retIt = 0, pagado = 0;
+
+        if (sinRetencion || bruto === 0) {
+            pagado = bruto;
+        } else {
+            // Lógica de ejemplo (puedes ajustarla según las reglas de tu país)
+            retIva = bruto * 0.13;
+            // retIue = bruto * 0.05; // Si aplicara
+            retIt = bruto * 0.03;
+            pagado = bruto - retIva - retIue - retIt;
+        }
+
+        document.getElementById('in_ret_iva').value = retIva.toFixed(2);
+        document.getElementById('in_ret_iue').value = retIue.toFixed(2);
+        document.getElementById('in_ret_it').value = retIt.toFixed(2);
+        document.getElementById('in_imp_pagado').value = pagado.toFixed(2);
+        
+        document.getElementById('in_pagado').value = pagado.toFixed(2);
+        document.getElementById('lbl_total').innerText = pagado.toFixed(2);
+        
+        document.getElementById('lbl_literal').value = "SON: " + pagado.toFixed(2) + " BOLIVIANOS";
+    }
+
+    function toggleFactura() {
+        let chk = document.getElementById('chk_factura');
+        let input = document.getElementById('in_factura');
+        input.disabled = !chk.checked;
+        if(!chk.checked) input.value = "";
+    }
+</script>
+{% endblock %}

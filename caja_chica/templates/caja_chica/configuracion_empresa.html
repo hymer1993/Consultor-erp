@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+{% block title %}Configuración de Empresa{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* ================= LAYOUT GENERAL ================= */
+    body { background-color: #e2e8f0; font-family: Tahoma, sans-serif; margin: 0; overflow: hidden; }
+    
+    .scrollable-area {
+        height: calc(100vh - 115px); 
+        overflow-y: auto; 
+        padding: 15px;
+        box-sizing: border-box;
+    }
+
+    .container {
+        max-width: 1000px;
+        margin: 0 auto;
+        background: #fff;
+        padding: 15px 20px;
+        border: 1px solid #a0b0c0;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    h2 { 
+        color: #1f4e79; 
+        border-bottom: 2px solid #cbd5e1; 
+        padding-bottom: 8px; 
+        margin-top: 0; 
+        margin-bottom: 15px; 
+        font-size: 16px; 
+    }
+    
+    /* ================= TABLAS (IDÉNTICAS A CLIENTES) ================= */
+    .contenedor-tabla { 
+        background: #fff; 
+        border: 1px solid #ccc; 
+        border-radius: 3px; 
+        margin-bottom: 10px; 
+        overflow: hidden; 
+    }
+    
+    .tabla-detalle { 
+        width: 100%; 
+        border-collapse: collapse; 
+        table-layout: fixed; 
+    }
+    .tabla-detalle td { 
+        padding: 2px 6px; 
+        font-size: 11px; 
+        border: 1px solid #e5e7eb; 
+        height: 28px; /* Altura uniforme */
+        vertical-align: middle; 
+    }
+    
+    .tabla-detalle td.lbl { 
+        width: 18%;               
+        white-space: nowrap;     
+        text-align: right;       
+        padding-right: 10px;
+        padding-left: 5px;
+        font-weight: bold; 
+        color: #4b5563; 
+        background-color: #f9fafb; 
+    }
+    
+    .tabla-detalle td.val { 
+        width: 32%; 
+        text-align: left; 
+        padding: 2px 8px;
+        color: #111827; 
+        background-color: #ffffff; 
+    }
+    
+    .tabla-detalle .header-seccion { 
+        background-color: #e5e7eb; 
+        color: #374151; 
+        font-weight: bold; 
+        text-align: left; 
+        padding: 4px 10px; 
+        border: 1px solid #ccc; 
+        font-size: 11px; 
+        height: 24px; 
+        text-transform: uppercase;
+    }
+
+    /* ================= INPUTS INTEGRADOS EN TABLAS ================= */
+    .tabla-detalle input[type="text"], 
+    .tabla-detalle input[type="date"], 
+    .tabla-detalle input[type="file"] { 
+        width: 100%;
+        border: 1px solid transparent; 
+        background: transparent;
+        padding: 2px 4px;
+        font-family: Tahoma, sans-serif;
+        font-size: 11px;
+        height: 22px;
+        box-sizing: border-box;
+        color: #000;
+    }
+    
+    .tabla-detalle input:focus { 
+        border-color: #2563eb;
+        background-color: #fff;
+        outline: none;
+    }
+
+    /* Estilo para los inputs de archivo (que no se vean gigantes) */
+    .tabla-detalle input[type="file"] {
+        font-size: 10px;
+        padding: 0;
+    }
+    
+    /* Filas que contienen imágenes (más altas) */
+    .fila-imagen td {
+        height: auto;
+        min-height: 50px;
+        padding: 5px;
+    }
+    
+    .img-preview { 
+        height: 40px; 
+        border: 1px solid #cbd5e1; 
+        padding: 2px; 
+        margin-top: 3px; 
+        background: #f8f9fa; 
+        border-radius: 3px; 
+        object-fit: contain;
+        display: block;
+    }
+    
+    /* ================= ALERTAS Y BOTÓN ================= */
+    .alert { padding: 8px 12px; margin-bottom: 15px; border-radius: 4px; font-weight: bold; font-size: 11px; }
+    .alert-warning { background: #fef3c7; color: #92400e; border: 1px solid #f59e0b; }
+    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #ef4444; }
+    .alert-success { background: #d1fae5; color: #065f46; border: 1px solid #10b981; }
+    
+    .form-footer {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .btn-save { 
+        background: #2563eb; 
+        color: white; 
+        padding: 6px 20px; 
+        border: none; 
+        border-radius: 3px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        font-size: 12px; 
+        transition: background 0.2s;
+    }
+    .btn-save:hover { background: #1d4ed8; }
+    
+    .helper-text { font-size: 9px; color: #64748b; margin-left: 5px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="scrollable-area">
+    <div class="container">
+        <h2>🏢 Configuración de la Empresa</h2>
+        
+        {% if messages %}
+            {% for message in messages %}
+                <div class="alert alert-success">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- ALERTA DE VENCIMIENTO DEL QR -->
+        {% if dias_para_vencer is not None %}
+            {% if dias_para_vencer < 0 %}
+                <div class="alert alert-danger">⚠️ El código QR de cobro está VENCIDO. Por favor, actualícelo inmediatamente.</div>
+            {% elif dias_para_vencer <= 3 %}
+                <div class="alert alert-warning">⏰ El código QR de cobro vencerá en {{ dias_para_vencer }} días. Por favor, prepárese para actualizarlo.</div>
+            {% endif %}
+        {% endif %}
+
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- SECCIÓN 1: DATOS GENERALES -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Datos Generales de la Empresa</td></tr>
+                    <tr>
+                        <td class="lbl">Nombre de la Empresa:</td>
+                        <td class="val" colspan="3">
+                            <input type="text" name="nombre" value="{{ config.nombre }}" required>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">NIT:</td>
+                        <td class="val"><input type="text" name="nit" value="{{ config.nit }}" required></td>
+                        <td class="lbl">Dirección:</td>
+                        <td class="val"><input type="text" name="direccion" value="{{ config.direccion }}" required></td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 2: LOGOS -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Logos e Imágenes</td></tr>
+                    <tr class="fila-imagen">
+                        <td class="lbl">Logo Encabezado:</td>
+                        <td class="val">
+                            <input type="file" name="logo" accept="image/*">
+                            {% if config.logo %}
+                                <img src="{{ config.logo.url }}" class="img-preview" alt="Logo Encabezado">
+                            {% endif %}
+                        </td>
+                        <td class="lbl">Logo Marca Agua:</td>
+                        <td class="val">
+                            <input type="file" name="logo_marca_agua" accept="image/*">
+                            {% if config.logo_marca_agua %}
+                                <img src="{{ config.logo_marca_agua.url }}" class="img-preview" alt="Logo Marca de Agua">
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 3: QR -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Cobros y QR Bancario</td></tr>
+                    <tr class="fila-imagen">
+                        <td class="lbl">Imagen del QR:</td>
+                        <td class="val">
+                            <input type="file" name="qr_cobro" accept="image/*">
+                            {% if config.qr_cobro %}
+                                <img src="{{ config.qr_cobro.url }}" class="img-preview" alt="QR de Cobro">
+                            {% endif %}
+                        </td>
+                        <td class="lbl">Fecha Vencimiento:</td>
+                        <td class="val">
+                            <input type="date" name="qr_vencimiento" value="{{ config.qr_vencimiento|date:'Y-m-d' }}">
+                            <span class="helper-text">Aviso 3 días antes.</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- SECCIÓN 4: REPRESENTANTE LEGAL -->
+            <div class="contenedor-tabla">
+                <table class="tabla-detalle">
+                    <tr><td colspan="4" class="header-seccion">Representante Legal</td></tr>
+                    <tr>
+                        <td class="lbl">Nombre Completo:</td>
+                        <td class="val"><input type="text" name="rep_nombre" value="{{ config.rep_nombre|default:'' }}"></td>
+                        <td class="lbl">Cargo:</td>
+                        <td class="val"><input type="text" name="rep_cargo" value="{{ config.rep_cargo|default:'' }}"></td>
+                    </tr>
+                    <tr class="fila-imagen">
+                        <td class="lbl">Firma Digital:</td>
+                        <td class="val" colspan="3">
+                            <input type="file" name="rep_firma" accept="image/*">
+                            {% if config.rep_firma %}
+                                <img src="{{ config.rep_firma.url }}" class="img-preview" style="height: 45px;" alt="Firma">
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <!-- BOTÓN GUARDAR -->
+            <div class="form-footer">
+                <button type="submit" class="btn-save">💾 Guardar Configuración</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

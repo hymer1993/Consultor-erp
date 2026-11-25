@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Imprimir Solicitud de Fondos</title>
+    <style>
+        @page { size: letter portrait; margin: 0; }
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; font-family: 'Segoe UI', Arial, sans-serif; background: #cbd5e1; color: #000; -webkit-print-color-adjust: exact !important; }
+        
+        /* MAYÚSCULAS GLOBALES */
+        body, div, span, p, h1, h2, h3, label, input, textarea, select, table, th, td { 
+            text-transform: uppercase !important; 
+        }
+
+        .sheet { width: 21.59cm; height: 27.94cm; background: #ffffff; margin: 0 auto 20px auto; padding: 1.5cm; box-sizing: border-box; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        
+        /* 🔥 ENCABEZADO CON PROPORCIONES CORREGIDAS 🔥 */
+        .header-doc { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #1f4e79; 
+            padding-bottom: 10px; 
+            gap: 10px;
+        }
+        
+        /* Columna Izquierda (Logo y Empresa) */
+        .logo-area { 
+            flex: 1; 
+            display: flex; 
+            align-items: center; 
+            gap: 10px; 
+        }
+        
+        .logo-area img { 
+            height: 70px; /* 🔥 LOGO MÁS GRANDE Y VISIBLE 🔥 */
+            width: auto; 
+            max-width: 110px; 
+            object-fit: contain; 
+        }
+        
+        .logo-area h2 { 
+            margin: 0 0 2px 0; 
+            font-size: 13px; /* 🔥 TEXTO MÁS PEQUEÑO Y COMPACTO 🔥 */
+            font-weight: 800; 
+            color: #1f4e79; 
+            line-height: 1.1; 
+        }
+        
+        .logo-area p { 
+            margin: 0; 
+            font-size: 9px; /* 🔥 NIT Y DIRECCIÓN MÁS COMPACTOS 🔥 */
+            color: #333; 
+            font-weight: 600;
+            line-height: 1.1;
+        }
+        
+        /* Columna Central (Título) */
+        .titulo-area { 
+            flex: 1; 
+            text-align: center; 
+            white-space: nowrap; 
+            padding: 0 5px;
+        }
+        
+        .titulo-area h1 { 
+            margin: 0; 
+            font-size: 16px; 
+            font-weight: 800; 
+            letter-spacing: 0.5px;
+        }
+        
+        .titulo-area h3 { 
+            margin: 2px 0 0 0; 
+            font-size: 14px; 
+            color: #dc2626; 
+            font-weight: bold;
+        }
+        
+        /* Columna Derecha (Monto) */
+        .monto-box { 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-end; 
+        }
+        
+        .monto-box label { 
+            font-size: 10px; 
+            font-weight: bold; 
+            color: #475569; 
+            margin-bottom: 2px;
+        }
+        
+        .monto-input-top { 
+            font-size: 18px; 
+            font-weight: 800; 
+            color: #000; 
+            border: 2px solid #facc15; 
+            background: #fef9c3; 
+            padding: 4px 10px; 
+            width: 120px; 
+            text-align: right; 
+        }
+        
+        /* RESTO DEL DOCUMENTO */
+        .tabla-fecha { display: flex; gap: 15px; margin-bottom: 20px; align-items: flex-end; justify-content: flex-start; width: 100%; }
+        .fecha-col { display: flex; flex-direction: column; align-items: center; }
+        .fecha-col label { font-weight: 700; font-size: 10px; color: #1e3a8a; margin-bottom: 2px;}
+        .fecha-col input { text-align: center; border: 1px solid #94a3b8; background: #fef9c3; padding: 3px; font-weight: bold; font-size: 11px; width: 50px; }
+        .fecha-col input[name="lugar"] { width: 120px; }
+        
+        .fila-doc { display: flex; align-items: flex-start; margin-bottom: 12px; width: 100%; }
+        .fila-doc label { font-weight: 700; font-size: 11px; color: #1e3a8a; width: 110px; flex-shrink: 0; padding-top: 3px; white-space: nowrap; }
+        .fila-doc input, .fila-doc textarea { flex: 1; width: 100%; border: none; border-bottom: 1.5px dotted #333; background: transparent; font-size: 12px; font-weight: bold; padding: 2px 5px; min-height: 22px; box-sizing: border-box; line-height: 1.3; }
+        .fila-doc textarea { resize: none; overflow: hidden; height: 22px; }
+        
+        .firmas-doc { display: flex; justify-content: space-around; margin-top: 60px; }
+        .firma-block { width: 40%; text-align: center; }
+        
+        /* 🔥 CORRECCIÓN DE LA LÍNEA DE FIRMA 🔥 */
+        .firma-linea { border-top: 1px solid #000; width: 200px; margin: 0 auto 5px auto; }
+        
+        .firma-texto { font-weight: 700; font-size: 11px; color: #1f4e79; }
+        .firma-nombre { font-size: 10px; color: #333; margin-top: 2px; font-weight: bold;}
+
+        .no-print { text-align: center; padding: 20px; background: #cbd5e1; }
+        .no-print button { padding: 10px 20px; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; font-size: 14px; }
+
+        @media print {
+            body { background: #fff; }
+            .sheet { box-shadow: none; margin: 0; border: none; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print">
+        <button onclick="window.print()">🖨️ Imprimir / Guardar como PDF</button>
+        <p style="font-size: 12px; margin-top: 10px; color: #475569;">
+            <strong>Importante:</strong> En la ventana de impresión, selecciona <strong>Márgenes: Ninguno</strong> y <strong>Escala: 100%</strong>.
+        </p>
+    </div>
+
+    <div class="sheet">
+        <div class="paper-doc">
+            
+            <div class="header-doc">
+                <div class="logo-area">
+                    {% if config_empresa.logo %}<img src="{{ config_empresa.logo.url }}" alt="Logo">{% endif %}
+                    <div>
+                        <h2>{{ config_empresa.nombre }}</h2>
+                        <p>NIT: {{ config_empresa.nit }}</p>
+                        <p>{{ config_empresa.direccion }}</p>
+                    </div>
+                </div>
+                
+                <div class="titulo-area">
+                    <h1>SOLICITUD DE FONDOS</h1>
+                    <h3 style="color: #1f4e79;">N° {{ solicitud.numero_solicitud }}</h3>
+                </div>
+                
+                <div class="monto-box">
+                    <label>MONTO SOLICITADO</label>
+                    <div class="monto-input-top">{{ solicitud.importe_solicitado }}</div>
+                </div>
+            </div>
+
+            <div class="tabla-fecha">
+                <div class="fecha-col"><label>Lugar</label><input type="text" name="lugar" value="{{ solicitud.lugar|default:'SANTA CRUZ' }}" readonly></div>
+                <div class="fecha-col"><label>Día</label><input type="text" value="{{ solicitud.fecha_solicitud|date:'d' }}" readonly></div>
+                <div class="fecha-col"><label>Mes</label><input type="text" value="{{ solicitud.fecha_solicitud|date:'m' }}" readonly></div>
+                <div class="fecha-col"><label>Año</label><input type="text" value="{{ solicitud.fecha_solicitud|date:'Y' }}" readonly></div>
+            </div>
+
+            <div class="fila-doc">
+                <label>Solicitante:</label>
+                <input type="text" value="{{ solicitud.solicitante.username }}" readonly>
+            </div>
+
+            <div class="fila-doc">
+                <label>La suma de:</label>
+                <input type="text" id="lbl_literal_sol" value="" readonly style="font-style: italic;">
+            </div>
+
+            <div class="fila-doc">
+                <label>Área / Depto:</label>
+                <input type="text" value="{{ solicitud.area }}" readonly>
+            </div>
+
+            <div class="fila-doc">
+                <label>Dirigido a:</label>
+                <input type="text" value="{{ solicitud.proveedor }}" readonly>
+            </div>
+
+            <div class="fila-doc">
+                <label>Motivo:</label>
+                <textarea readonly style="height: 22px; overflow: hidden;">{{ solicitud.motivo_gasto }}</textarea>
+            </div>
+
+            <div class="firmas-doc" style="margin-top: 60px;">
+                <div class="firma-block">
+                    <div class="firma-linea"></div>
+                    <div class="firma-texto">Firma del Solicitante</div>
+                    <div class="firma-nombre">{{ solicitud.solicitante.username }}</div>
+                </div>
+                <div class="firma-block">
+                    <div class="firma-linea"></div>
+                    <div class="firma-texto">Autorizado Por</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function numeroALetras(num) {
+            const unidades = ['', 'UNO', 'DOS', 'TRES', 'CUATRO', 'CINCO', 'SEIS', 'SIETE', 'OCHO', 'NUEVE'];
+            const decenas = ['', 'DIEZ', 'VEINTE', 'TREINTA', 'CUARENTA', 'CINCUENTA', 'SESENTA', 'SETENTA', 'OCHENTA', 'NOVENTA'];
+            const centenas = ['', 'CIENTO', 'DOSCIENTOS', 'TRESCIENTOS', 'CUATROCIENTOS', 'QUINIENTOS', 'SEISCIENTOS', 'SETECIENTOS', 'OCHOCIENTOS', 'NOVECIENTOS'];
+            let entero = Math.floor(num); let centavos = Math.round((num - entero) * 100);
+            function convertir(n) {
+                if (n === 0) return "CERO"; if (n < 10) return unidades[n]; 
+                if (n < 20) { const esp = ['DIEZ', 'ONCE', 'DOCE', 'TRECE', 'CATORCE', 'QUINCE', 'DIECISEIS', 'DIECISIETE', 'DIECIOCHO', 'DIECINUEVE']; return esp[n - 10]; }
+                if (n < 100) { let dec = Math.floor(n / 10); let uni = n % 10; return decenas[dec] + (uni > 0 ? " Y " + unidades[uni] : ""); }
+                if (n < 1000) { let cen = Math.floor(n / 100); let resto = n % 100; return (n === 100 ? "CIEN" : centenas[cen]) + (resto > 0 ? " " + convertir(resto) : ""); }
+                if (n < 1000000) { let miles = Math.floor(n / 1000); let resto = n % 1000; return (miles === 1 ? "MIL" : convertir(miles) + " MIL") + (resto > 0 ? " " + convertir(resto) : ""); }
+                return "MONTO EXCEDIDO";
+            }
+            return `${convertir(entero)} ${centavos.toString().padStart(2, '0')}/100 BOLIVIANOS`.toUpperCase();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            let montoStr = "{{ solicitud.importe_solicitado }}";
+            let monto = parseFloat(montoStr.replace(',', '.')) || 0;
+            document.getElementById('lbl_literal_sol').value = numeroALetras(monto);
+        });
+    </script>
+</body>
+</html>

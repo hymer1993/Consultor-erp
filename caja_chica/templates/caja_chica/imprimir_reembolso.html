@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reembolso {{ reembolso.numero_reembolso }}</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; font-size: 12px; padding: 40px; color: #000; }
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid #1f4e79; padding-bottom: 10px; margin-bottom: 30px; }
+        .logo h2 { margin: 0; font-size: 18px; font-weight: 800; color: #1f4e79; }
+        .titulo { text-align: right; }
+        .titulo h1 { margin: 0; font-size: 20px; color: #dc2626; }
+        .info p { margin: 5px 0; font-size: 14px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 12px; }
+        th { background: #e0e8f0; border: 1px solid #000; padding: 8px; text-align: left; }
+        td { border: 1px solid #000; padding: 8px; }
+        .total { text-align: right; font-size: 16px; font-weight: bold; margin-top: 20px; }
+        .firmas { display: flex; justify-content: space-around; margin-top: 80px; text-align: center; }
+        .firma-linea { border-top: 1px solid #000; width: 200px; margin-bottom: 5px; }
+        
+        @media print {
+            body { padding: 0; }
+            .no-print { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+        <button onclick="window.print()" style="padding: 10px 20px; cursor: pointer; background: #2563eb; color: white; border: none; border-radius: 4px; font-weight: bold;">🖨️ Imprimir Documento</button>
+        <a href="{% url 'historial_reembolsos' %}" style="padding: 10px 20px; background: #e2e8f0; color: #000; text-decoration: none; font-weight: bold; border-radius: 4px; margin-left: 10px;">Volver al Historial</a>
+    </div>
+
+    <div class="header">
+        <div class="logo">
+            {% if config_empresa.logo %}<img src="{{ config_empresa.logo.url }}" style="height: 50px; margin-bottom: 5px;"><br>{% endif %}
+            <h2>{{ config_empresa.nombre }}</h2>
+            <p>NIT: {{ config_empresa.nit }}</p>
+            <p>{{ config_empresa.direccion }}</p>
+        </div>
+        <div class="titulo">
+            <h1>PLANILLA DE REEMBOLSO</h1>
+            <p style="font-size: 16px; font-weight: bold;">N° {{ reembolso.numero_reembolso }}</p>
+            <p>Fecha: {{ reembolso.fecha_reembolso|date:"d/m/Y" }}</p>
+        </div>
+    </div>
+
+    <div class="info">
+        <p><strong>Empleado Beneficiario:</strong> {{ reembolso.empleado_nombre }}</p>
+        <p>Por medio de la presente, se detalla la devolución de fondos correspondientes a los gastos realizados por el empleado en mención:</p>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>N° Recibo</th>
+                <th>Fecha</th>
+                <th>Concepto</th>
+                <th style="text-align: right;">Monto (Bs.)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Aquí se itera sobre los recibos asociados -->
+            {% for rec in recibos %}
+            <tr>
+                <td>{{ rec.numero }}</td>
+                <td>{{ rec.fecha|date:"d/m/Y" }}</td>
+                <td>{{ rec.concepto }}</td>
+                <td style="text-align: right;">{{ rec.total_pagado }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" style="text-align: center; padding: 10px;">No hay recibos asociados a esta planilla.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="total">
+        TOTAL REEMBOLSADO: Bs. {{ reembolso.total_reembolsado }}
+    </div>
+
+    <div class="firmas">
+        <div>
+            <div class="firma-linea"></div>
+            <p><strong>Entregue Conforme</strong></p>
+            <p>{{ reembolso.empleado_nombre }}</p>
+        </div>
+        <div>
+            <div class="firma-linea"></div>
+            <p><strong>Recibí Conforme</strong></p>
+            <p>{{ user.username }}</p>
+        </div>
+    </div>
+
+</body>
+</html>

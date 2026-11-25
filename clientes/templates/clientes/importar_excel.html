@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Importar Clientes{% endblock %}
+
+{% block content %}
+<div style="max-width: 800px; margin: 40px auto; background: #fff; padding: 20px; border: 1px solid #ccc; border-radius: 5px;">
+    <h3 style="border-bottom: 2px solid #2563eb; padding-bottom: 10px;">Importar Clientes desde Excel</h3>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div style="padding: 10px; margin-bottom: 15px; border-radius: 4px; background-color: {% if message.tags == 'success' %}#dcfce7{% else %}#fecaca{% endif %}; color: {% if message.tags == 'success' %}#166534{% else %}#991b1b{% endif %};">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div style="background-color: #e0f2fe; padding: 15px; border-radius: 5px; margin-bottom: 20px;">
+        <h4 style="margin-top: 0;">Instrucciones para importar:</h4>
+        <ol>
+            <li><strong>Descarga la plantilla</strong> haciendo clic en el botón verde.</li>
+            <li>Llena los datos en Excel. <strong>El NIT y la Razón Social son obligatorios</strong>.</li>
+            <li>Las columnas de credenciales (Usuario SIN, Contraseña SIN, etc.) se guardarán automáticamente en la base de datos.</li>
+            <li>Sube el archivo aquí abajo y presiona "Importar".</li>
+        </ol>
+    </div>
+
+    <div style="margin-bottom: 20px; text-align: center;">
+        <!-- BOTÓN VERDE PARA DESCARGAR LA PLANTILLA -->
+        <a href="{% url 'descargar_plantilla' %}" style="background: #10b981; color: white; padding: 12px 25px; text-decoration: none; border-radius: 4px; display: inline-block; font-size: 16px; font-weight: bold;">
+            📥 Descargar Plantilla con Ejemplo
+        </a>
+    </div>
+
+    <form method="post" enctype="multipart/form-data" style="border-top: 1px solid #eee; padding-top: 20px;">
+        {% csrf_token %}
+        <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 5px;">Selecciona el archivo de Excel (.xlsx):</label>
+            <input type="file" name="archivo_excel" accept=".xlsx, .xls" required style="padding: 5px; border: 1px solid #ccc; width: 100%;">
+        </div>
+        <button type="submit" style="background: #2563eb; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer;">
+            🚀 Importar Clientes
+        </button>
+        <a href="{% url 'lista_clientes' %}" style="margin-left: 10px; padding: 10px 20px; background: #ccc; color: #333; text-decoration: none; border-radius: 4px;">Volver a la lista</a>
+    </form>
+</div>
+{% endblock %}

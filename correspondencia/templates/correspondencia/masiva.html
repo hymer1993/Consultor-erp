@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .split-container { display: flex; height: 100%; gap: 5px; background-color: #e6edf5; padding-bottom: 5px; }
+    .left-panel { width: 320px; min-width: 320px; flex-shrink: 0; background-color: #f0f4f8; border: 1px solid #a0b0c0; display: flex; flex-direction: column; }
+    .search-bar { padding: 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; background: #fff; }
+    .search-bar input { flex-grow: 1; padding: 2px 5px; border: 1px solid #a0b0c0; font-size: 11px; }
+    .toolbar { padding: 3px 5px; border-bottom: 1px solid #a0b0c0; display: flex; background: #e0e0e0; align-items: center; justify-content: space-between; }
+    .toolbar-count { font-size: 10px; color: #555; }
+    .list-items { flex-grow: 1; overflow-y: auto; background: #fff; }
+    .list-item { display: flex; align-items: center; padding: 4px 8px; border-bottom: 1px solid #e0e0e0; cursor: pointer; font-size: 11px; }
+    .list-item:hover { background-color: #f0f4f8; }
+    .list-item input[type="checkbox"] { margin-right: 8px; cursor: pointer; }
+    .list-item-left { display: flex; flex-direction: column; }
+    .list-item-title { color: #0056b3; font-weight: bold; }
+    .list-item-subtitle { font-size: 10px; color: #555; }
+
+    .right-panel { flex-grow: 1; background-color: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; overflow-y: auto; }
+    .details-header { padding: 8px 10px; background-color: #f0f4f8; border-bottom: 1px solid #a0b0c0; }
+    .details-title { font-size: 13px; font-weight: bold; color: #0056b3; }
+    .form-container { padding: 15px; max-width: 650px; }
+    .section-header { background-color: #e0e0e0; padding: 3px 5px; font-weight: bold; font-size: 11px; margin-bottom: 15px; border: 1px solid #a0b0c0; }
+    .form-group { display: flex; align-items: center; font-size: 11px; margin-bottom: 10px; }
+    .form-group label { font-weight: bold; width: 130px; flex-shrink: 0; text-align: right; padding-right: 10px; }
+    .form-group input, .form-group select { flex-grow: 1; padding: 4px 6px; border: 1px solid #a0b0c0; font-size: 11px; font-family: Tahoma, sans-serif; height: 24px; }
+    .action-bar { margin-top: 20px; padding-top: 15px; border-top: 1px solid #a0b0c0; display: flex; justify-content: flex-end; }
+    .btn-save { background: #0056b3; color: white; border: 1px solid #004494; padding: 6px 20px; cursor: pointer; font-weight: bold; font-size: 12px; border-radius: 3px; }
+    .btn-save:hover { background: #004494; }
+
+    /* ESTILOS PARA LA LISTA DE DESCARGAS */
+    .resultados-container { margin-top: 20px; padding: 10px; background: #e8f5e9; border: 1px solid #c3e6cb; border-radius: 4px; }
+    .resultados-title { color: #155724; font-weight: bold; margin-bottom: 10px; font-size: 12px; }
+    .lista-archivos { max-height: 200px; overflow-y: auto; background: #fff; border: 1px solid #c3e6cb; padding: 5px; }
+    .archivo-item { display: flex; justify-content: space-between; align-items: center; padding: 4px; border-bottom: 1px solid #eee; font-size: 11px; }
+    .archivo-item:last-child { border-bottom: none; }
+    .btn-descargar { background: #28a745; color: white; padding: 2px 8px; text-decoration: none; border-radius: 2px; font-size: 10px; }
+    .btn-descargar:hover { background: #218838; color: white; }
+</style>
+
+<form method="post" enctype="multipart/form-data" style="height: 100%; display: flex; flex-direction: column;">
+    {% csrf_token %}
+    <div class="split-container">
+        <div class="left-panel">
+            <div class="search-bar">
+                <input type="text" id="search-cliente" placeholder="Buscar..." onkeyup="filtrarClientes()">
+            </div>
+            <div class="toolbar">
+                <label style="font-size: 11px; cursor: pointer; font-weight: bold;">
+                    <input type="checkbox" id="select-all" onclick="toggleAll(this)"> Seleccionar Todos
+                </label>
+                <span class="toolbar-count" id="contador-seleccionados">0 seleccionados</span>
+            </div>
+            <div class="list-items" id="lista-clientes">
+                {% for c in clientes %}
+                <label class="list-item" data-search="{{ c.razon_social|lower }} {{ c.nit|lower }}">
+                    <input type="checkbox" name="clientes_seleccionados" value="{{ c.id }}" class="chk-cliente" onclick="actualizarContador()">
+                    <div class="list-item-left">
+                        <span class="list-item-title">{{ c.razon_social|truncatechars:30 }}</span>
+                        <span class="list-item-subtitle">NIT: {{ c.nit }} | {{ c.tipo_servicio }}</span>
+                    </div>
+                </label>
+                {% empty %}
+                <div style="padding: 20px; text-align: center; color: #888;">No hay clientes habilitados.</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="right-panel">
+            <div class="details-header">
+                <div class="details-title">Generación Masiva de Cartas + Facturas</div>
+            </div>
+            <div class="form-container">
+                {% if error %}
+                <div style="background: #f8d7da; color: #721c24; padding: 10px; margin-bottom: 15px; border: 1px solid #f5c6cb; border-radius: 3px; font-size: 11px;">
+                    {{ error }}
+                </div>
+                {% endif %}
+
+                <div class="section-header">Configuración Común</div>
+                <div class="form-group">
+                    <label>Tipo de Documento:</label>
+                    <select name="tipo_carta" required>
+                        <option value="COBRO">Cobro de Honorarios</option>
+                        <option value="PROPUESTA">Propuesta de Servicios</option>
+                        <option value="INFORME">Informe General</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Fecha de la Carta:</label>
+                    <input type="date" name="fecha_carta" value="{{ hoy|date:'Y-m-d' }}" required>
+                </div>
+
+                <div class="section-header" style="margin-top: 25px;">Subir Facturas (PDF)</div>
+                <div class="form-group">
+                    <label>Facturas en PDF:</label>
+                    <input type="file" name="facturas_pdf" accept=".pdf" multiple style="padding: 2px; border: 1px solid #a0b0c0;">
+                </div>
+                
+                <div class="action-bar">
+                    <button type="submit" class="btn-save">
+                        📄 Generar PDFs
+                    </button>
+                </div>
+
+                <!-- SECCIÓN DE RESULTADOS (Aparece solo cuando hay archivos generados) -->
+                {% if archivos_generados %}
+                <div class="resultados-container">
+                    <div class="resultados-title">✅ {{ mensaje_exito }} (Descargando automáticamente...)</div>
+                    <div class="lista-archivos">
+                        {% for archivo in archivos_generados %}
+                        <div class="archivo-item">
+                            <span>{{ archivo.nombre }}</span>
+                            <!-- Los enlaces ahora tienen el atributo 'download' y un ID para el JS -->
+                            <a href="{{ archivo.url }}" download id="descarga-{{ forloop.counter }}" class="btn-descargar">Descargar</a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div style="margin-top: 10px; font-size: 10px; color: #555;">
+                        * Si el navegador bloquea las descargas, haz clic en "Permitir" en la barra de direcciones.
+                    </div>
+                </div>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function toggleAll(source) {
+        document.querySelectorAll('.chk-cliente').forEach(chk => {
+            if (chk.closest('.list-item').style.display !== 'none') chk.checked = source.checked;
+        });
+        actualizarContador();
+    }
+    function actualizarContador() {
+        document.getElementById('contador-seleccionados').innerText = document.querySelectorAll('.chk-cliente:checked').length + ' seleccionados';
+    }
+    function filtrarClientes() {
+        const input = document.getElementById('search-cliente').value.toLowerCase();
+        document.querySelectorAll('.list-item').forEach(item => {
+            item.style.display = item.getAttribute('data-search').includes(input) ? 'flex' : 'none';
+        });
+    }
+
+    // SCRIPT PARA LA DESCARGA AUTOMÁTICA SECUENCIAL
+    document.addEventListener("DOMContentLoaded", function() {
+        // Verificamos si existen los botones de descarga en la página
+        const enlaces = document.querySelectorAll('.btn-descargar');
+        
+        if (enlaces.length > 0) {
+            let i = 0;
+            // Creamos una función que haga clic en un enlace, espere 800 milisegundos, y pase al siguiente
+            function descargarSiguiente() {
+                if (i < enlaces.length) {
+                    enlaces[i].click(); // Simula el clic en el botón de descarga
+                    i++;
+                    setTimeout(descargarSiguiente, 800); // Espera 0.8 segundos antes de descargar el siguiente
+                }
+            }
+            
+            // Iniciamos la secuencia
+            descargarSiguiente();
+        }
+    });
+</script>
+{% endblock %}

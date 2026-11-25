@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Consultora{% endblock %}</title>
+    <style>
+        /* --- ESTILOS GLOBALES CLÁSICOS --- */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Tahoma, 'Segoe UI', sans-serif; background-color: #e6edf5; color: #000; font-size: 11px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* --- CABECERA --- */
+        .top-header { background-color: #ffffff; padding: 3px 10px; font-weight: bold; font-size: 11px; border-bottom: 1px solid #a0b0c0; text-transform: uppercase; color: #333; flex-shrink: 0; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* --- MENÚ PRINCIPAL --- */
+        .main-nav { background-color: #e0e0e0; border-bottom: 1px solid #a0b0c0; flex-shrink: 0; }
+        .main-nav ul { list-style: none; display: flex; flex-wrap: wrap; }
+        .main-nav li { border-right: 1px solid #b0b0b0; }
+        .main-nav a { display: block; padding: 4px 15px; text-decoration: none; color: #000; font-weight: normal; transition: background 0.1s; }
+        .main-nav a:hover { background-color: #d0d0d0; }
+        .main-nav li.active { background-color: #ffffff; border-bottom: 2px solid #0056b3; font-weight: bold; }
+
+        /* --- RIBBON UNIFICADO --- */
+        .ribbon-container { 
+            padding: 4px 8px 2px 8px; 
+            background-color: #f0f4f8; 
+            border-bottom: 1px solid #a0b0c0; 
+            flex-shrink: 0; 
+            display: flex; 
+            align-items: stretch; 
+            gap: 5px; 
+        }
+        
+        .ribbon-group { 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            border-right: 1px solid #b0c0d0; 
+            padding: 0 10px 0 0; 
+        }
+        
+        .ribbon-buttons { 
+            display: flex; 
+            gap: 4px; 
+            align-items: flex-start; 
+        }
+        
+        .ribbon-btn { 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: flex-start; 
+            text-decoration: none; 
+            color: #000; 
+            padding: 4px 6px; 
+            min-width: 65px; 
+            border: 1px solid transparent; 
+            border-radius: 3px; 
+            transition: background 0.1s, border 0.1s;
+            cursor: pointer;
+        }
+        
+        .ribbon-btn:hover { 
+            background-color: #dce6f0; 
+            border-color: #a0b0c0; 
+        }
+        
+        .ribbon-icon { 
+            font-size: 22px; 
+            margin-bottom: 4px; 
+            line-height: 1;
+        }
+        
+        .ribbon-text { 
+            font-size: 11px; 
+            text-align: center; 
+            line-height: 1.2; 
+            white-space: normal; 
+            max-width: 80px;
+            word-wrap: break-word;
+        }
+        
+        .ribbon-title { 
+            text-align: center; 
+            font-size: 11px; 
+            color: #333; 
+            padding-top: 2px; 
+            margin-top: 4px;
+            border-top: 1px solid #c0d0e0; 
+            width: 100%; 
+        }
+
+        /* --- ÁREA DE CONTENIDO --- */
+        .main-content { padding: 5px; flex-grow: 1; overflow: hidden; display: flex; flex-direction: column; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <!-- CABECERA -->
+    <header class="top-header">
+        <div>CONSULTORA CONTABLE & AUDITORÍA</div>
+        <div style="display: flex; align-items: center; gap: 10px; text-transform: none;">
+            {% if user.is_superuser %}
+                <a href="{% url 'lista_usuarios' %}" style="color: #0056b3; text-decoration: none; font-weight: bold; font-size: 11px;">⚙️ Gestionar Usuarios</a>
+            {% endif %}
+            <span>👤 {{ user.username }}</span>
+            <form action="{% url 'logout' %}" method="post" style="display:inline; margin:0;">
+                {% csrf_token %}
+                <button type="submit" style="background: #e0e0e0; color: #000; border: 1px solid #a0b0c0; padding: 2px 8px; border-radius: 2px; cursor: pointer; font-size: 10px;">Salir</button>
+            </form>
+        </div>
+    </header>
+
+    <!-- MENÚ PRINCIPAL -->
+    <nav class="main-nav">
+        <ul>
+            <li class="{% if request.path == '/inicio/' %}active{% endif %}"><a href="/inicio/">Inicio</a></li>
+            <li class="{% if '/clientes/' in request.path %}active{% endif %}"><a href="/clientes/">Clientes</a></li>
+            <li class="{% if '/herramientas/' in request.path %}active{% endif %}"><a href="/herramientas/">Mis Herramientas</a></li>
+            <li class="{% if '/caja-chica/' in request.path %}active{% endif %}"><a href="/caja-chica/">Caja Chica</a></li>
+            <li class="{% if '/correspondencia/' in request.path %}active{% endif %}"><a href="/correspondencia/">Correspondencia</a></li>
+            <li><a href="#">Recursos Humanos</a></li>
+            <li><a href="#">Gestión Documental</a></li>
+        </ul>
+    </nav>
+
+    <!-- RIBBON DINÁMICO -->
+    {% if '/inicio/' not in request.path %}
+    <div class="ribbon-container">
+        
+        <!-- BOTONES DE CLIENTES -->
+        {% if '/clientes/' in request.path %}
+        <div class="ribbon-group">
+            <div class="ribbon-buttons">
+                <a href="/clientes/?accion=nuevo" class="ribbon-btn">
+                    <span class="ribbon-icon">➕</span>
+                    <span class="ribbon-text">Nuevo<br>Cliente</span>
+                </a>
+                <!-- ESTE ES EL BOTÓN QUE ABRE EL EXPLORADOR DE ARCHIVOS -->
+                <a href="#" onclick="document.getElementById('global-excel-input').click(); return false;" class="ribbon-btn">
+                    <span class="ribbon-icon">📥</span>
+                    <span class="ribbon-text">Importar<br>Excel</span>
+                </a>
+            </div>
+            <div class="ribbon-title">Registro</div>
+        </div>
+        {% endif %}
+
+        <!-- BOTONES DE MIS HERRAMIENTAS -->
+        {% if '/herramientas/' in request.path %}
+        <div class="ribbon-group">
+            <div class="ribbon-buttons">
+                <a href="{% if cliente_editar %}?id={{ cliente_editar.id }}&accion=configurar{% else %}#{% endif %}" 
+                   class="ribbon-btn" 
+                   onclick="{% if not cliente_editar %}alert('Por favor, selecciona un cliente de la lista de la izquierda primero.'); return false;{% endif %}">
+                    <span class="ribbon-icon">📄</span>
+                    <span class="ribbon-text">Generar<br>Boletas</span>
+                </a>
+                <a href="/herramientas/traspasos/" class="ribbon-btn">
+                    <span class="ribbon-icon">🔄</span>
+                    <span class="ribbon-text">Asientos<br>Traspasos</span>
+                </a>
+                <a href="/herramientas/saldos-negativos/" class="ribbon-btn">
+                    <span class="ribbon-icon">⚠️</span>
+                    <span class="ribbon-text">Detectar<br>Negativos</span>
+                </a>
+                <a href="/herramientas/extraer-pdf/" class="ribbon-btn">
+                    <span class="ribbon-icon">📄</span>
+                    <span class="ribbon-text">Extraer<br>PDF</span>
+                </a>
+            </div>
+            <div class="ribbon-title">Herramientas</div>
+        </div>
+        {% endif %}
+
+        <!-- BOTONES DE CAJA CHICA -->
+        {% if '/caja-chica/' in request.path %}
+        <div class="ribbon-group">
+            <div class="ribbon-buttons">
+                <a href="/caja-chica/?accion=nuevo" class="ribbon-btn">
+                    <span class="ribbon-icon">📝</span>
+                    <span class="ribbon-text">Nuevo<br>Recibo</span>
+                </a>
+                <a href="/caja-chica/" class="ribbon-btn">
+                    <span class="ribbon-icon">📋</span>
+                    <span class="ribbon-text">Lista de<br>Recibos</span>
+                </a>
+                <a href="/caja-chica/?accion=solicitud" class="ribbon-btn">
+                    <span class="ribbon-icon">📥</span>
+                    <span class="ribbon-text">Solicitud<br>Fondos</span>
+                </a>
+                <a href="{% url 'rendicion_fondos' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">📊</span>
+                    <span class="ribbon-text">Rendición<br>Fondos</span>
+                </a>
+                <a href="/caja-chica/control-gastos/" class="ribbon-btn">
+                    <span class="ribbon-icon">📈</span>
+                    <span class="ribbon-text">Control<br>Gastos</span>
+                </a>
+                <a href="{% url 'configuracion_empresa' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">🏢</span>
+                    <span class="ribbon-text">Configurar<br>Empresa/Logo</span>
+                </a>
+                <a href="{% url 'configuracion_conceptos' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">⚙️</span>
+                    <span class="ribbon-text">Cuentas<br>Contables</span>
+                </a>
+                <a href="{% url 'historial_reembolsos' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">📁</span>
+                    <span class="ribbon-text">Historial<br>Reembolsos</span>
+                </a>
+            </div>
+            <div class="ribbon-title">Caja Chica</div>
+        </div>
+        {% endif %}
+
+        <!-- BOTONES DE CORRESPONDENCIA -->
+        {% if '/correspondencia/' in request.path %}
+        <div class="ribbon-group">
+            <div class="ribbon-buttons">
+                <a href="{% url 'crear_correspondencia' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">✉️</span>
+                    <span class="ribbon-text">Nueva<br>Carta</span>
+                </a>
+                <a href="{% url 'generacion_masiva' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">📦</span>
+                    <span class="ribbon-text">Generación<br>Masiva</span>
+                </a>
+                <a href="{% url 'lista_correspondencia' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">📚</span>
+                    <span class="ribbon-text">Libro de<br>Correspondencia</span>
+                </a>
+            </div>
+            <div class="ribbon-title">Correspondencia</div>
+        </div>
+        {% endif %}
+
+        <!-- BOTONES DE GESTIÓN DE USUARIOS -->
+        {% if '/usuarios/' in request.path %}
+        <div class="ribbon-group">
+            <div class="ribbon-buttons">
+                <a href="{% url 'lista_usuarios' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">👥</span>
+                    <span class="ribbon-text">Lista de<br>Usuarios</span>
+                </a>
+                <a href="{% url 'crear_usuario' %}" class="ribbon-btn">
+                    <span class="ribbon-icon">➕</span>
+                    <span class="ribbon-text">Nuevo<br>Usuario</span>
+                </a>
+            </div>
+            <div class="ribbon-title">Usuarios</div>
+        </div>
+        {% endif %}
+
+    </div>
+    {% endif %}
+
+    <!-- CONTENIDO -->
+    <main class="main-content">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- FORMULARIO OCULTO GLOBAL (ACTUALIZADO name="archivo_excel") -->
+    <form id="global-import-form" method="POST" action="{% url 'importar_clientes' %}" enctype="multipart/form-data" style="display:none;">
+        {% csrf_token %}
+        <input type="file" name="archivo_excel" id="global-excel-input" accept=".xlsx, .xls" onchange="document.getElementById('global-import-form').submit();">
+    </form>
+
+</body>
+</html>

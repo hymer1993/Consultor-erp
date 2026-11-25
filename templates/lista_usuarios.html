@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Gestión de Usuarios{% endblock %}
+
+{% block extra_css %}
+<style>
+    .table-wrapper { padding: 15px; width: 100%; height: 100%; overflow-y: auto; }
+    
+    .table-card { 
+        background: #ffffff; 
+        border: 1px solid #a0b0c0; 
+        width: 100%; 
+        max-width: 1000px; /* Un poco más ancho para que quepa el nombre completo */
+        margin: 0 auto; 
+        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+    }
+    
+    .table-header { 
+        background: #f0f4f8; 
+        border-bottom: 1px solid #a0b0c0; 
+        padding: 8px 15px; 
+        font-weight: bold; 
+        font-size: 12px; 
+        color: #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .btn-nuevo { 
+        background: #e0e0e0; 
+        border: 1px solid #a0b0c0; 
+        padding: 4px 10px; 
+        font-size: 11px; 
+        font-weight: bold; 
+        cursor: pointer; 
+        text-decoration: none; 
+        color: #000; 
+        border-radius: 2px; 
+    }
+    .btn-nuevo:hover { background: #d0d0d0; }
+
+    .admin-table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: Tahoma, 'Segoe UI', sans-serif; }
+    .admin-table th { background-color: #0056b3; color: white; padding: 6px 10px; text-align: left; font-weight: bold; border: 1px solid #004494; text-transform: uppercase; }
+    .admin-table td { padding: 8px 10px; border: 1px solid #e0e0e0; vertical-align: middle; color: #000; }
+    .admin-table tr:nth-child(even) { background-color: #f8fafc; }
+    .admin-table tr:hover { background-color: #e6edf5; }
+    
+    .status-badge { padding: 2px 6px; border-radius: 2px; font-weight: bold; font-size: 10px; }
+    .status-active { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+    .status-inactive { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+    .btn-accion { padding: 3px 8px; border-radius: 2px; text-decoration: none; font-size: 10px; font-weight: bold; display: inline-block; border: 1px solid #a0b0c0; background: #e0e0e0; color: #000; cursor: pointer; }
+    .btn-accion:hover { background: #d0d0d0; }
+    
+    .alert { padding: 8px 15px; margin-bottom: 15px; font-weight: bold; font-size: 11px; border: 1px solid transparent; }
+    .alert-error { background-color: #f8d7da; color: #721c24; border-color: #f5c6cb; }
+    .alert-success { background-color: #d4edda; color: #155724; border-color: #c3e6cb; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="table-wrapper">
+    
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% else %}alert-success{% endif %}" style="max-width: 1000px; margin: 0 auto 15px auto;">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="table-card">
+        <div class="table-header">
+            <span>👥 Listado de Usuarios del Sistema</span>
+            <a href="{% url 'crear_usuario' %}" class="btn-nuevo">➕ Nuevo Usuario</a>
+        </div>
+        
+        <table class="admin-table" id="tablaUsuarios">
+            <thead>
+                <tr>
+                    <th>Nombre Completo</th> <!-- 🔥 NUEVA COLUMNA -->
+                    <th>Usuario</th>
+                    <th>Correo Electrónico</th>
+                    <th>Rol</th>
+                    <th>Estado</th>
+                    <th style="text-align: center;">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr>
+                    <!-- 🔥 MOSTRAMOS EL NOMBRE Y APELLIDO 🔥 -->
+                    <td>
+                        {% if u.first_name or u.last_name %}
+                            {{ u.first_name }} {{ u.last_name }}
+                        {% else %}
+                            <span style="color: #999; font-style: italic;">Sin nombre registrado</span>
+                        {% endif %}
+                    </td>
+                    <td style="font-weight: bold;">{{ u.username }}</td>
+                    <td>{{ u.email|default:"-" }}</td>
+                    <td>
+                        {% if u.is_superuser %}
+                            <span style="color: #b91c1c; font-weight: bold;">Administrador</span>
+                        {% else %}
+                            Estándar
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="status-badge status-active">ACTIVO</span>
+                        {% else %}
+                            <span class="status-badge status-inactive">INACTIVO</span>
+                        {% endif %}
+                    </td>
+                    <td style="text-align: center;">
+                        <a href="{% url 'editar_usuario' u.id %}" class="btn-accion">✏️ Editar</a>
+                        
+                        {% if u != request.user %}
+                            <a href="{% url 'toggle_usuario' u.id %}" class="btn-accion" 
+                               onclick="return confirm('¿Seguro que deseas cambiar el estado de {{ u.username }}?');">
+                                {% if u.is_active %}🚫 Deshabilitar{% else %}✅ Habilitar{% endif %}
+                            </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="6" style="text-align: center; padding: 15px;">No hay usuarios registrados en el sistema.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

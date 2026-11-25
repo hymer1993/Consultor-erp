@@ -1,0 +1,491 @@
+{% extends "base.html" %}
+{% block title %}Control de Gastos{% endblock %}
+
+{% block extra_css %}
+<style>
+    .split-layout { display: flex; height: 100%; gap: 5px; overflow: hidden; background: #e6edf5; padding: 5px; }
+    
+    /* PANEL IZQUIERDO */
+    .left-panel { width: 280px; min-width: 280px; background: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; height: 100%; }
+    .search-bar { padding: 5px; background: #f0f0f0; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; }
+    .search-input { flex-grow: 1; padding: 4px; border: 1px solid #a0b0c0; font-size: 11px; outline: none; }
+    .search-select { width: 120px; padding: 4px; border: 1px solid #a0b0c0; font-size: 11px; outline: none; }
+
+    .toolbar { background: #f0f0f0; padding: 3px 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 2px; align-items: center; }
+    .toolbar-btn { background: transparent; border: 1px solid transparent; padding: 2px 5px; cursor: pointer; font-size: 14px; color: #000; }
+    .toolbar-btn:hover:not(:disabled) { border: 1px solid #a0b0c0; background: #fff; }
+    .toolbar-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .reg-count { margin-left: auto; font-size: 11px; color: #555; }
+
+    .list-header { display: flex; background: #e0e0e0; border-bottom: 1px solid #a0b0c0; font-weight: bold; font-size: 11px; padding: 4px 5px; }
+    
+    .list-item { padding: 4px 6px; border-bottom: 1px solid #eee; cursor: pointer; font-size: 11px; display: flex; justify-content: space-between; align-items: center; }
+    .list-item:hover { background: #f0f4f8; }
+    .list-item.active { background: #cce0ff; font-weight: bold; }
+    
+    .badge { padding: 2px 6px; border-radius: 4px; font-size: 9px; font-weight: bold; }
+    .badge-reem { background: #fef08a; color: #854d0e; }
+    .badge-carta { background: #d1fae5; color: #065f46; }
+
+    .list-footer { background: #f8fafc; border-top: 2px solid #a0b0c0; padding: 6px 8px; font-size: 11px; font-weight: bold; color: #1f4e79; display: flex; justify-content: space-between; }
+    .list-footer span.total { color: #dc2626; }
+
+    /* PANEL DERECHO */
+    .right-panel { flex-grow: 1; background: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
+    .top-action-bar { background: #e0e8f0; padding: 8px 10px; border-bottom: 1px solid #a0b0c0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    
+    /* FORMULARIO DE FILTROS */
+    .filter-group { display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: bold; color: #1f4e79; flex-wrap: wrap; }
+    .filter-group label { margin-left: 5px; }
+    
+    .date-input { width: 85px; padding: 4px; border: 1px solid #a0b0c0; font-size: 11px; border-radius: 3px; text-align: center; background: #fff; }
+    .date-input:focus { border-color: #2563eb; outline: none; }
+    
+    .btn-search-icon { background: #2563eb; color: #fff; border: none; border-radius: 3px; padding: 4px 8px; cursor: pointer; margin-left: 5px; font-size: 12px; }
+    .btn-search-icon:hover { background: #1d4ed8; }
+
+    .filter-group select { padding: 4px; border: 1px solid #a0b0c0; font-size: 11px; border-radius: 3px; width: 140px; outline: none;}
+    .btn-limpiar { color: #dc2626; text-decoration: none; font-size: 14px; margin-left: 5px; font-weight: bold; cursor: pointer; text-decoration: none;}
+    
+    .action-group { display: flex; gap: 10px; align-items: center; }
+    .btn { padding: 6px 12px; border: 1px solid #a0b0c0; background: #fff; cursor: pointer; font-size: 11px; font-weight: bold; border-radius: 3px; text-decoration: none; color: #000;}
+    .btn-success { background: #10b981; color: #fff; border-color: #059669; }
+    .btn-primary { background: #2563eb; color: #fff; border-color: #1d4ed8; }
+
+    /* TABLA */
+    .table-responsive { flex-grow: 1; overflow-y: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    th { background: #f0f0f0; position: sticky; top: 0; border: 1px solid #a0b0c0; padding: 6px; text-align: center; z-index: 10; }
+    td { border: 1px solid #cbd5e1; padding: 6px; vertical-align: middle; text-align: center; }
+    
+    tr:nth-child(even) { background-color: #f9f9f9; }
+    tr:hover { background-color: #e6f0fa; }
+    
+    .chk-control { width: 16px; height: 16px; cursor: pointer; }
+    .tag-pendiente { color: #dc2626; font-weight: bold; font-size: 10px;}
+    .tag-completado { color: #10b981; font-weight: bold; font-size: 10px;}
+    .tag-emitido { color: #d97706; font-weight: bold; font-size: 10px;}
+    .tag-no-aplica { color: #64748b; font-size: 10px; font-style: italic;}
+    .tag-anulado { color: #dc2626; font-weight: bold; font-size: 9px; background: #fecaca; padding: 2px 4px; border-radius: 3px;}
+
+    /* FOOTER DE TOTALES */
+    .footer-totales { background: #f8fafc; border-top: 2px solid #1f4e79; padding: 10px 15px; display: flex; justify-content: space-between; align-items: center; }
+    .totales-info { display: flex; gap: 20px; font-size: 12px; font-weight: bold; color: #1e3a8a; }
+    .monto-total { font-size: 16px; font-weight: bold; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="split-layout">
+    
+    <!-- ================= PANEL IZQUIERDO ================= -->
+    <div class="left-panel">
+        <div class="search-bar">
+            <input type="text" id="txt-buscar-doc" class="search-input" placeholder="Buscar N° o nombre..." onkeyup="filtrarDocumentos()">
+            <select id="sel-tipo-doc" class="search-select" onchange="filtrarDocumentos()">
+                <option value="todos">Todos</option>
+                <option value="reembolso">Reembolsos</option>
+                <option value="carta">Cartas</option>
+            </select>
+        </div>
+
+        <div class="toolbar">
+            <button type="button" class="toolbar-btn" title="Visualizar Documento" onclick="abrirDocumento()">🔍</button>
+            
+            <!-- BOTÓN CONFIRMAR (VERDE) -->
+            <button type="button" class="toolbar-btn" style="color: #10b981; font-weight: bold;" id="btn-confirmar-pago" title="Confirmar Pago" onclick="confirmarPagoSeleccionado()" disabled>✅</button>
+            
+            <!-- BOTÓN DESMARCAR (AMARILLO) -->
+            <button type="button" class="toolbar-btn" style="color: #d97706; font-weight: bold;" id="btn-desmarcar-pago" title="Desmarcar Pago (Volver a Pendiente)" onclick="desmarcarPagoSeleccionado()" disabled>↩️</button>
+            
+            <!-- BOTÓN REVERTIR / BORRAR (ROJO) -->
+            <button type="button" class="toolbar-btn" style="color: #dc2626; font-weight: bold;" id="btn-revertir-doc" title="Borrar Documento y Revertir Recibos" onclick="revertirDocumentoSeleccionado()" disabled>❌</button>
+            
+            <button type="button" class="toolbar-btn" title="Actualizar Lista" onclick="window.location.reload()">🔄</button>
+            <span class="reg-count" id="lbl-contador-docs">{{ documentos|length }} reg.</span>
+        </div>
+        
+        <div class="list-header"><span>Documentos Generados</span></div>
+        
+        <div style="flex-grow: 1; overflow-y: auto;" id="lista-documentos">
+            {% for doc in documentos %}
+                <div class="list-item doc-item" 
+                     data-tipo="{{ doc.tipo }}" 
+                     data-numero="{{ doc.numero|lower }}" 
+                     data-detalle="{{ doc.detalle|lower }}" 
+                     data-url="{{ doc.url }}"
+                     data-pagado="{{ doc.pagado|yesno:'true,false' }}"
+                     data-revert-url="{% if doc.tipo == 'reembolso' %}{% url 'revertir_reembolso' doc.id %}{% else %}{% url 'revertir_carta' doc.id %}{% endif %}"
+                     data-confirm-url="{% if doc.tipo == 'reembolso' %}{% url 'confirmar_pago_reembolso' doc.id %}{% else %}{% url 'confirmar_pago_carta' doc.id %}{% endif %}"
+                     data-desmarcar-url="{% if doc.tipo == 'reembolso' %}{% url 'desmarcar_pago_reembolso' doc.id %}{% else %}{% url 'desmarcar_pago_carta' doc.id %}{% endif %}"
+                     onclick="seleccionarDocumento(this)">
+                    
+                    <div style="flex: 1; min-width: 0; padding-right: 5px;">
+                        <div style="font-weight: bold; font-size: 11px; display: flex; align-items: center; gap: 5px;">
+                            {{ doc.numero }}
+                            {% if not doc.pagado %}
+                                <span style="background: #fef08a; color: #854d0e; padding: 1px 4px; border-radius: 3px; font-size: 8px;">⏳ POR PAGAR</span>
+                            {% else %}
+                                <span style="background: #d1fae5; color: #065f46; padding: 1px 4px; border-radius: 3px; font-size: 8px;">✅ PAGADO</span>
+                            {% endif %}
+                        </div>
+                        <div style="color: #666; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ doc.detalle }}</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink: 0;">
+                        <div style="color: #059669; font-size: 11px; font-weight: bold;">Bs. {{ doc.monto|floatformat:2 }}</div>
+                        <div style="margin-top: 2px;">
+                            {% if doc.tipo == 'reembolso' %}
+                                <span class="badge badge-reem">Reembolso</span>
+                            {% else %}
+                                <span class="badge badge-carta">Cobro</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div style="padding: 15px; font-size: 11px; color: #666; text-align: center;">No hay documentos generados.</div>
+            {% endfor %}
+        </div>
+
+        <div class="list-footer">
+            <span>Total Reembolsos:</span>
+            <span class="total">Bs. {{ total_reembolsos|floatformat:2 }}</span>
+        </div>
+        <div class="list-footer" style="border-top: none;">
+            <span>Total Cartas:</span>
+            <span class="total">Bs. {{ total_cartas|floatformat:2 }}</span>
+        </div>
+    </div>
+
+    <!-- ================= PANEL DERECHO ================= -->
+    <div class="right-panel">
+        
+        <div class="top-action-bar">
+            <form method="GET" class="filter-group" id="form-filtros">
+                <label>Desde:</label>
+                <input type="text" name="fecha_inicio" value="{{ fecha_inicio|default:'' }}" placeholder="dd/mm/aaaa" maxlength="10" class="date-input" oninput="aplicarMascaraFecha(this)">
+                
+                <label>Hasta:</label>
+                <input type="text" name="fecha_fin" value="{{ fecha_fin|default:'' }}" placeholder="dd/mm/aaaa" maxlength="10" class="date-input" oninput="aplicarMascaraFecha(this)">
+                
+                <label>Cliente:</label>
+                <select name="cliente_id" onchange="document.getElementById('form-filtros').submit()">
+                    <option value="">-- Todos --</option>
+                    {% for cli in clientes %}
+                        <option value="{{ cli.id }}" {% if cliente_id|stringformat:"s" == cli.id|stringformat:"s" %}selected{% endif %}>{{ cli.razon_social }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Empleado:</label>
+                <select name="empleado" onchange="document.getElementById('form-filtros').submit()">
+                    <option value="">-- Todos --</option>
+                    {% for emp in empleados_db %}
+                        <option value="{{ emp }}" {% if empleado_sel == emp %}selected{% endif %}>{{ emp }}</option>
+                    {% endfor %}
+                </select>
+
+                <label>Estado:</label>
+                <select name="estado" onchange="document.getElementById('form-filtros').submit()">
+                    <option value="">-- Todos --</option>
+                    <option value="pendiente_reembolso" {% if estado_sel == 'pendiente_reembolso' %}selected{% endif %}>⏳ Falta Pagar a Empleado</option>
+                    <option value="pendiente_cobro" {% if estado_sel == 'pendiente_cobro' %}selected{% endif %}>⏳ Falta Cobrar a Cliente</option>
+                    <option value="completados" {% if estado_sel == 'completados' %}selected{% endif %}>✅ Completados</option>
+                </select>
+                
+                <button type="submit" class="btn-search-icon" title="Aplicar Filtros">🔍</button>
+
+                {% if fecha_inicio or fecha_fin or cliente_id or empleado_sel or estado_sel %}
+                    <a href="{% url 'control_gastos' %}" class="btn-limpiar" title="Quitar todos los filtros">❌</a>
+                {% endif %}
+            </form>
+
+            <div class="action-group">
+                <button type="button" class="btn" style="background: #f59e0b; color: white; border-color: #d97706;" onclick="mostrarModalRenumerar()" title="Ordenar correlativos por fecha">🔄 Renumerar</button>
+                <button type="button" class="btn btn-success" onclick="generarReembolso()">💵 Reembolsar Empleado</button>
+                <button type="button" class="btn btn-primary" onclick="generarCarta()">📄 Generar Carta de Cobro</button>
+            </div>
+        </div>
+
+        <form method="POST" id="form-carta" style="display:none;">
+            {% csrf_token %}
+            <input type="hidden" name="form_type" value="generar_carta">
+            <input type="hidden" name="cliente_id" id="hidden_cliente_id">
+            <div id="hidden_inputs_carta"></div>
+        </form>
+
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th width="30"><input type="checkbox" id="checkAll" onclick="toggleAll(this)"></th>
+                        <th>N° Recibo</th>
+                        <th>Fecha</th>
+                        <th>Pagado a</th>
+                        <th>Concepto</th>
+                        <th>Cliente</th>
+                        <th>Monto (Bs.)</th>
+                        <th>Reembolso Empleado</th>
+                        <th>Cobro Cliente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for rec in recibos %}
+                    <tr {% if rec.estado == 'anulado' %}style="background-color: #fee2e2; opacity: 0.7;"{% endif %}>
+                        <td>
+                            <input type="checkbox" class="chk-recibo" value="{{ rec.id }}" 
+                                   data-cliente="{{ rec.cliente_id|default:'' }}" 
+                                   data-monto="{{ rec.total_pagado }}" 
+                                   onchange="actualizarTotal()"
+                                   {% if rec.estado == 'anulado' %}disabled title="Recibo anulado"{% endif %}>
+                        </td>
+                        <td>
+                            <strong>{{ rec.numero }}</strong>
+                            {% if rec.estado == 'anulado' %}<br><span class="tag-anulado">(ANULADO)</span>{% endif %}
+                        </td>
+                        <td>{{ rec.fecha|date:"d/m/Y" }}</td>
+                        <td style="text-align: left;">{{ rec.tercero_nombre }}</td>
+                        <td style="text-align: left;">{{ rec.concepto|truncatechars:30 }}</td>
+                        <td>{% if rec.cliente %}{{ rec.cliente.razon_social }}{% else %}-{% endif %}</td>
+                        <td style="text-align: right; font-weight: bold;">{{ rec.total_pagado }}</td>
+                        
+                        <td>
+                            {% if rec.estado == 'anulado' %}
+                                <span class="tag-no-aplica">-</span>
+                            {% elif rec.devuelto_al_empleado %}
+                                <span class="tag-completado">✅ {{ rec.fecha_devolucion|date:"d/m/Y" }}</span>
+                            {% elif rec.reembolso %}
+                                <span class="tag-emitido">📄 Emitido (Falta Pago)</span>
+                            {% else %}
+                                <span class="tag-pendiente">⏳ Pendiente</span>
+                            {% endif %}
+                        </td>
+
+                        <td>
+                            {% if rec.estado == 'anulado' %}
+                                <span class="tag-no-aplica">-</span>
+                            {% elif not rec.asumido_por_cliente or not rec.cliente %}
+                                <span class="tag-no-aplica">Gasto Interno</span>
+                            {% elif rec.cobrado_al_cliente %}
+                                <span class="tag-completado">✅ {{ rec.fecha_cobro|date:"d/m/Y" }}</span>
+                            {% elif rec.carta_cobro %}
+                                <span class="tag-emitido">📄 Emitido (Falta Cobro)</span>
+                            {% else %}
+                                <span class="tag-pendiente">⏳ Pendiente</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="9" style="text-align: center; padding: 20px; color: #666;">No hay recibos que coincidan con la búsqueda.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="footer-totales">
+            <div class="totales-info">
+                <div>Pend. Reembolso: <span class="monto-total" style="color: #dc2626;">Bs. {{ total_pend_reembolso|floatformat:2 }}</span></div>
+                <div>Pend. Cobro: <span class="monto-total" style="color: #2563eb;">Bs. {{ total_pend_cobro|floatformat:2 }}</span></div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 13px; font-weight: bold; color: #1f4e79;">Total Seleccionado:</span>
+                <span class="monto-total" id="lbl_total_seleccionado" style="color: #059669; font-size: 18px;">Bs. 0.00</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL PARA RENUMERAR RECIBOS -->
+<div id="modal-renumerar" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+    <div style="background: #fff; padding: 20px; border-radius: 6px; width: 350px; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+        <h3 style="margin-top: 0; color: #1f4e79; font-size: 16px; border-bottom: 1px solid #cbd5e1; padding-bottom: 10px;">Renumerar Recibos</h3>
+        <p style="font-size: 11px; color: #666; margin-bottom: 15px;">Ingresa el rango de fechas. <strong>Los recibos ya rendidos o anulados no serán modificados.</strong></p>
+        
+        <form method="POST" action="{% url 'renumerar_recibos' %}" onsubmit="return confirm('¿Estás seguro de renumerar los recibos en este rango?');">
+            {% csrf_token %}
+            <div style="margin-bottom: 10px;">
+                <label style="font-size: 11px; font-weight: bold;">Desde:</label>
+                <input type="text" name="fecha_inicio" id="renum_inicio" placeholder="dd/mm/aaaa" maxlength="10" class="date-input" style="width: 100%;" oninput="aplicarMascaraFecha(this)" required>
+            </div>
+            <div style="margin-bottom: 15px;">
+                <label style="font-size: 11px; font-weight: bold;">Hasta:</label>
+                <input type="text" name="fecha_fin" id="renum_fin" placeholder="dd/mm/aaaa" maxlength="10" class="date-input" style="width: 100%;" oninput="aplicarMascaraFecha(this)" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" class="btn" onclick="cerrarModalRenumerar()">Cancelar</button>
+                <button type="submit" class="btn" style="background: #f59e0b; color: white; border-color: #d97706;">Procesar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function aplicarMascaraFecha(input) {
+        let valor = input.value.replace(/\D/g, ''); 
+        if (valor.length > 8) valor = valor.slice(0, 8); 
+
+        let formateado = '';
+        if (valor.length > 0) {
+            formateado = valor.slice(0, 2); 
+            if (valor.length > 2) formateado += '/' + valor.slice(2, 4); 
+            if (valor.length > 4) formateado += '/' + valor.slice(4, 8); 
+        }
+        input.value = formateado;
+    }
+
+    let urlDocumentoSeleccionado = '';
+    let urlRevertirSeleccionado = '';
+    let urlConfirmarSeleccionado = '';
+    let urlDesmarcarSeleccionado = '';
+    let estaPagadoSeleccionado = false;
+
+    function seleccionarDocumento(element) {
+        let items = document.querySelectorAll('.doc-item');
+        items.forEach(item => item.classList.remove('active'));
+        element.classList.add('active');
+        
+        urlDocumentoSeleccionado = element.getAttribute('data-url');
+        urlRevertirSeleccionado = element.getAttribute('data-revert-url');
+        urlConfirmarSeleccionado = element.getAttribute('data-confirm-url');
+        urlDesmarcarSeleccionado = element.getAttribute('data-desmarcar-url');
+        estaPagadoSeleccionado = element.getAttribute('data-pagado') === 'true';
+        
+        document.getElementById('btn-revertir-doc').disabled = false;
+        document.getElementById('btn-confirmar-pago').disabled = estaPagadoSeleccionado;
+        document.getElementById('btn-desmarcar-pago').disabled = !estaPagadoSeleccionado;
+    }
+
+    function abrirDocumento() {
+        if (urlDocumentoSeleccionado) {
+            window.open(urlDocumentoSeleccionado, '_blank');
+        } else {
+            alert('Por favor, selecciona un documento de la lista primero.');
+        }
+    }
+
+    function revertirDocumentoSeleccionado() {
+        if (urlRevertirSeleccionado) {
+            if (confirm('¿Estás seguro de ELIMINAR este documento? Los recibos asociados volverán a estar pendientes.')) {
+                window.location.href = urlRevertirSeleccionado;
+            }
+        }
+    }
+
+    function confirmarPagoSeleccionado() {
+        if (urlConfirmarSeleccionado && !estaPagadoSeleccionado) {
+            if (confirm('¿Confirmas que el dinero ya fue entregado/recibido físicamente? Esta acción registrará la fecha de hoy.')) {
+                window.location.href = urlConfirmarSeleccionado;
+            }
+        }
+    }
+
+    function desmarcarPagoSeleccionado() {
+        if (urlDesmarcarSeleccionado && estaPagadoSeleccionado) {
+            if (confirm('¿Estás seguro de volver a poner este documento como PENDIENTE? Se borrará la fecha de pago registrada.')) {
+                window.location.href = urlDesmarcarSeleccionado;
+            }
+        }
+    }
+
+    function filtrarDocumentos() {
+        let texto = document.getElementById('txt-buscar-doc').value.toLowerCase();
+        let tipo = document.getElementById('sel-tipo-doc').value;
+        let items = document.querySelectorAll('.doc-item');
+        let contador = 0;
+
+        items.forEach(item => {
+            let num = item.getAttribute('data-numero');
+            let det = item.getAttribute('data-detalle');
+            let itemTipo = item.getAttribute('data-tipo');
+            
+            let coincideTexto = num.includes(texto) || det.includes(texto);
+            let coincideTipo = (tipo === 'todos' || tipo === itemTipo);
+
+            if (coincideTexto && coincideTipo) {
+                item.style.display = 'flex';
+                contador++;
+            } else {
+                item.style.display = 'none';
+            }
+        });
+        document.getElementById('lbl-contador-docs').innerText = contador + ' reg.';
+    }
+
+    function toggleAll(source) {
+        let checkboxes = document.querySelectorAll('.chk-recibo:not(:disabled)');
+        checkboxes.forEach(cb => cb.checked = source.checked);
+        actualizarTotal();
+    }
+
+    function actualizarTotal() {
+        let checkboxes = document.querySelectorAll('.chk-recibo:checked');
+        let total = 0;
+        checkboxes.forEach(cb => {
+            let monto = parseFloat(cb.getAttribute('data-monto')) || 0;
+            total += monto;
+        });
+        document.getElementById('lbl_total_seleccionado').innerText = 'Bs. ' + total.toFixed(2);
+    }
+
+    function generarReembolso() {
+        let checkboxes = document.querySelectorAll('.chk-recibo:checked');
+        if (checkboxes.length === 0) { alert('Marque al menos un recibo en la tabla.'); return; }
+        
+        let empleado = prompt("Nombre del empleado a quien se le devolverá el dinero:");
+        if (!empleado) return;
+
+        if(confirm('¿Generar planilla de reembolso para los ' + checkboxes.length + ' recibos seleccionados?')) {
+            let form = document.createElement('form'); form.method = 'POST'; form.style.display = 'none';
+            let csrf = document.createElement('input'); csrf.type = 'hidden'; csrf.name = 'csrfmiddlewaretoken'; csrf.value = document.querySelector('[name=csrfmiddlewaretoken]').value; form.appendChild(csrf);
+            
+            let type = document.createElement('input'); type.type = 'hidden'; type.name = 'form_type'; type.value = 'generar_reembolso'; form.appendChild(type);
+            let emp = document.createElement('input'); emp.type = 'hidden'; emp.name = 'empleado_nombre'; emp.value = empleado; form.appendChild(emp);
+
+            checkboxes.forEach(cb => {
+                let input = document.createElement('input'); input.type = 'hidden'; input.name = 'recibos_seleccionados'; input.value = cb.value; form.appendChild(input);
+            });
+            document.body.appendChild(form); form.submit();
+        }
+    }
+
+    function generarCarta() {
+        let clienteId = document.getElementById('sel_cliente_filtro') ? document.getElementById('sel_cliente_filtro').value : null;
+        if(!clienteId && document.querySelector('select[name="cliente_id"]')){
+            clienteId = document.querySelector('select[name="cliente_id"]').value;
+        }
+        
+        let checkboxes = document.querySelectorAll('.chk-recibo:checked');
+        
+        if (!clienteId) { alert('Por favor, seleccione un cliente en el filtro de arriba primero.'); return; }
+        if (checkboxes.length === 0) { alert('Marque al menos un recibo en la tabla.'); return; }
+
+        let valido = true;
+        checkboxes.forEach(cb => { 
+            if (cb.getAttribute('data-cliente') !== clienteId) { valido = false; } 
+        });
+        
+        if (!valido) { alert('Los recibos marcados no pertenecen al cliente seleccionado en el filtro.'); return; }
+
+        if(confirm('¿Generar Carta de Cobro para los ' + checkboxes.length + ' recibos seleccionados?')) {
+            document.getElementById('hidden_cliente_id').value = clienteId;
+            let contenedor = document.getElementById('hidden_inputs_carta');
+            contenedor.innerHTML = '';
+            
+            checkboxes.forEach(cb => {
+                let input = document.createElement('input'); input.type = 'hidden'; input.name = 'recibos_seleccionados'; input.value = cb.value; contenedor.appendChild(input);
+            });
+            document.getElementById('form-carta').submit();
+        }
+    }
+
+    function mostrarModalRenumerar() {
+        document.getElementById('modal-renumerar').style.display = 'flex';
+        document.getElementById('renum_inicio').focus();
+    }
+
+    function cerrarModalRenumerar() {
+        document.getElementById('modal-renumerar').style.display = 'none';
+        document.getElementById('renum_inicio').value = '';
+        document.getElementById('renum_fin').value = '';
+    }
+</script>
+{% endblock %}

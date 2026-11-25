@@ -1,0 +1,117 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    .split-container { display: flex; height: 100%; gap: 5px; background-color: #e6edf5; padding-bottom: 5px; }
+    .left-panel { width: 280px; min-width: 280px; flex-shrink: 0; background-color: #f0f4f8; border: 1px solid #a0b0c0; display: flex; flex-direction: column; }
+    .search-bar { padding: 5px; border-bottom: 1px solid #a0b0c0; display: flex; gap: 5px; background: #fff; }
+    .search-bar input { flex-grow: 1; padding: 2px 5px; border: 1px solid #a0b0c0; font-size: 11px; }
+    .toolbar { padding: 3px 5px; border-bottom: 1px solid #a0b0c0; display: flex; background: #e0e0e0; align-items: center; }
+    .toolbar-count { font-size: 10px; color: #555; margin-left: 5px; }
+    .list-items { flex-grow: 1; overflow-y: auto; background: #fff; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 4px 8px; border-bottom: 1px solid #e0e0e0; cursor: pointer; font-size: 11px; }
+    .list-item:hover { background-color: #f0f4f8; }
+    .list-item.active { background-color: #dce6f0; border-left: 3px solid #0056b3; font-weight: bold; }
+    .list-item-left { display: flex; flex-direction: column; }
+    .list-item-title { color: #0056b3; font-weight: bold; }
+    .list-item-subtitle { font-size: 10px; color: #555; }
+
+    .right-panel { flex-grow: 1; background-color: #fff; border: 1px solid #a0b0c0; display: flex; flex-direction: column; overflow-y: auto; }
+    .details-header { padding: 8px 10px; background-color: #f0f4f8; border-bottom: 1px solid #a0b0c0; }
+    .details-title { font-size: 13px; font-weight: bold; color: #0056b3; }
+    .form-container { padding: 10px; }
+    .section-header { background-color: #e0e0e0; padding: 3px 5px; font-weight: bold; font-size: 11px; margin-bottom: 8px; border: 1px solid #a0b0c0; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 15px; margin-bottom: 12px; }
+    .form-group { display: flex; align-items: center; font-size: 11px; }
+    .form-group label { font-weight: bold; width: 110px; flex-shrink: 0; text-align: right; padding-right: 8px; }
+    .form-group input, .form-group select { flex-grow: 1; padding: 2px 4px; border: 1px solid #a0b0c0; font-size: 11px; font-family: Tahoma, sans-serif; height: 22px; }
+    .form-group.full-width { grid-column: span 2; }
+    .action-bar { margin-top: 15px; padding-top: 10px; border-top: 1px solid #a0b0c0; display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-save { background: #e0e0e0; border: 1px solid #a0b0c0; padding: 4px 15px; cursor: pointer; font-weight: bold; font-size: 11px; border-radius: 2px; }
+    .btn-cancel { background: #fff; border: 1px solid #a0b0c0; padding: 4px 15px; cursor: pointer; font-size: 11px; border-radius: 2px; text-decoration: none; color: #000; }
+</style>
+
+<div class="split-container">
+    <div class="left-panel">
+        <div class="search-bar">
+            <input type="text" id="search-cliente" placeholder="Buscar..." onkeyup="filtrarClientes()">
+        </div>
+        <div class="toolbar">
+            <span class="toolbar-count">{{ clientes|length }} reg.</span>
+        </div>
+        <div class="list-items" id="lista-clientes">
+            {% for c in clientes %}
+            <div class="list-item" 
+                 onclick="seleccionarCliente(this)"
+                 data-nombre="{{ c.razon_social }}"
+                 data-nit="{{ c.nit }}"
+                 data-honorarios="{{ c.honorarios_mensuales|default:'0' }}"
+                 data-servicio="{{ c.tipo_servicio|default:'' }}"
+                 data-search="{{ c.razon_social|lower }} {{ c.nit|lower }}">
+                <div class="list-item-left">
+                    <span class="list-item-title">{{ c.razon_social|truncatechars:25 }}</span>
+                    <span class="list-item-subtitle">NIT: {{ c.nit }}</span>
+                </div>
+            </div>
+            {% empty %}
+            <div style="padding: 20px; text-align: center; color: #888;">No hay clientes.</div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="details-header">
+            <div class="details-title">Generar Documento Individual</div>
+        </div>
+        <div class="form-container">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="section-header">Información del Documento</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Tipo de Doc.:</label>{{ form.tipo_carta }}</div>
+                    <div class="form-group"><label>Unidad / CITES:</label>{{ form.unidad_cites }}</div>
+                    <div class="form-group"><label>Cliente (Destino):</label>{{ form.destino }}</div>
+                    <div class="form-group"><label>NIT Cliente:</label>{{ form.nit }}</div>
+                </div>
+                <div class="section-header">Datos de Facturación y Fechas</div>
+                <div class="form-grid">
+                    <div class="form-group"><label>Nº de Factura:</label>{{ form.numero_factura }}</div>
+                    <div class="form-group"><label>Fecha de Factura:</label>{{ form.fecha_factura }}</div>
+                    <div class="form-group"><label>Monto (Bs):</label>{{ form.monto }}</div>
+                    <div class="form-group"><label>Fecha de Carta:</label>{{ form.fecha }}</div>
+                </div>
+                <div class="section-header">Referencia y Archivo Adjunto</div>
+                <div class="form-grid">
+                    <div class="form-group full-width"><label>Objeto / Ref:</label>{{ form.objeto }}</div>
+                    <div class="form-group full-width">
+                        <label>Factura PDF:</label>
+                        <div style="flex-grow: 1; border: 1px dashed #a0b0c0; padding: 2px; background: #fff;">{{ form.factura_pdf }}</div>
+                    </div>
+                </div>
+                <div class="action-bar">
+                    <a href="{% url 'lista_correspondencia' %}" class="btn-cancel">Cancelar</a>
+                    <button type="submit" class="btn-save">💾 Guardar y Generar PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function seleccionarCliente(elemento) {
+        document.getElementById('id_destino').value = elemento.getAttribute('data-nombre');
+        document.getElementById('id_nit').value = elemento.getAttribute('data-nit');
+        document.getElementById('id_monto').value = elemento.getAttribute('data-honorarios');
+        let servicio = elemento.getAttribute('data-servicio');
+        document.getElementById('id_objeto').value = "Cobro de Honorarios" + (servicio ? " - Servicio: " + servicio : "");
+        document.querySelectorAll('.list-item').forEach(item => item.classList.remove('active'));
+        elemento.classList.add('active');
+    }
+    function filtrarClientes() {
+        const input = document.getElementById('search-cliente').value.toLowerCase();
+        document.querySelectorAll('.list-item').forEach(item => {
+            item.style.display = item.getAttribute('data-search').includes(input) ? 'flex' : 'none';
+        });
+    }
+</script>
+{% endblock %}
