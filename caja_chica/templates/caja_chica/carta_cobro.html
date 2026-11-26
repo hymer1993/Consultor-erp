@@ -56,7 +56,7 @@
 
     /* MARCA DE AGUA DINÁMICA */
     .watermark {
-        position: absolute; top: 50%; left: 53%; width: 75%; height: 75; transform: translate(-50%, -50%);
+        position: absolute; top: 50%; left: 53%; width: 75%; height: 75%; transform: translate(-50%, -50%);
         opacity: 0.10; object-fit: contain; pointer-events: none; z-index: 1;
     }
 
@@ -69,8 +69,8 @@
     /* ENCABEZADO DINÁMICO */
     .header { margin-bottom: 10px; display: flex; flex-direction: column; align-items: flex-start; }
     .logo-img { max-height: 65px; max-width: 250px; object-fit: contain; margin-bottom: 8px; }
-    .logo-text h1 { font-family: 'Arial Black', Impact, sans-serif; font-size: 26px; color: var(--azul-grisaceo); line-height: 1; margin-bottom: 2px; }
-    .logo-text h2 { font-family: Arial, sans-serif; font-size: 11px; color: var(--rosa-fuerte); letter-spacing: 1px; font-weight: bold; }
+    .logo-text h1 { font-family: Arial, Helvetica, sans-serif; font-size: 24px; font-weight: bold; color: var(--azul-grisaceo); line-height: 1; margin-bottom: 2px; }
+    .logo-text h2 { font-family: Arial, Helvetica, sans-serif; font-size: 11px; color: var(--rosa-fuerte); letter-spacing: 1px; font-weight: bold; }
     
     .header-line { 
         width: 100%; 
@@ -81,8 +81,18 @@
     }
 
     /* CONTENIDO INTERNO */
-    .main-content { color: #000; font-size: 13px; line-height: 1.5; }
-    .texto-derecha { text-align: right; margin-bottom: 15px; color: #000; font-weight: bold; }
+    .main-content { color: #000; font-size: 13px; line-height: 1.5; font-family: Arial, Helvetica, sans-serif; }
+    
+    /* REFERENCIA SUBRAYADA A LA DERECHA */
+    .texto-derecha { 
+        text-align: right; 
+        margin-bottom: 15px; 
+        color: #000; 
+        font-weight: bold; 
+        text-decoration: underline; 
+        font-size: 13px;
+    }
+    
     .texto-destinatario { margin-bottom: 0; line-height: 1.5; color: #000; }
     .texto-parrafo { text-align: justify; margin-bottom: 15px; line-height: 1.5; color: #000; }
 
@@ -106,9 +116,13 @@
         margin-bottom: 3px;
     }
 
-    /* =========================================================
-       🔥 CONTENEDOR DEL QR (SIN CORTES Y TAMAÑO REDUCIDO) 🔥
-       ========================================================= */
+    .correlativo-carta {
+        font-weight: bold;
+        color: #000;
+        margin-bottom: 3px;
+    }
+
+    /* CONTENEDOR DEL QR (UNIFICADO CON LA FUENTE GENERAL) */
     .qr-superior {
         width: 115px; 
         flex-shrink: 0;
@@ -120,6 +134,7 @@
         border: none; 
         background-color: #fff; 
         z-index: 10; 
+        font-family: Arial, Helvetica, sans-serif;
     }
 
     .qr-superior p {
@@ -132,6 +147,7 @@
         white-space: nowrap;
         display: block; 
         width: 100%;
+        letter-spacing: 0.5px;
     }
 
     .qr-img-container {
@@ -155,7 +171,7 @@
     }
 
     /* TABLAS GENERALES */
-    table { width: 100%; border-collapse: collapse; font-size: 11px; }
+    table { width: 100%; border-collapse: collapse; font-size: 11px; font-family: Arial, Helvetica, sans-serif; }
     th { 
         background-color: var(--azul-tablas); color: #ffffff; padding: 6px 4px;
         text-align: center; border: 1px solid #777; font-weight: normal; 
@@ -171,9 +187,7 @@
         color: var(--azul-tablas); font-size: 13px; 
     }
 
-    /* =========================================================
-       NUEVA SECCIÓN DE COBRO
-       ========================================================= */
+    /* SECCIÓN DE COBRO */
     .seccion-cobro {
         display: flex;
         gap: 15px;
@@ -206,9 +220,7 @@
     .texto-cierre { font-size: 13px; color: #000; line-height: 1.5; text-align: justify; margin: 0; }
     .texto-cierre strong { color: var(--azul-tablas); }
 
-    /* =========================================================
-       FIRMAS DINÁMICAS (CORREGIDO: LÍNEA AJUSTADA AL NOMBRE Y FIRMA GRANDE)
-       ========================================================= */
+    /* FIRMAS DINÁMICAS */
     .seccion-firmas { 
         display: flex; 
         flex-direction: column; 
@@ -219,7 +231,6 @@
         width: 100%;
     }
 
-    /* 🔥 Este contenedor hace que la línea mida exactamente lo que mide el nombre 🔥 */
     .contenedor-firma-nombre {
         display: inline-flex;
         flex-direction: column;
@@ -228,15 +239,15 @@
     
     .firma-wrapper {
         position: relative;
-        width: 100%; /* Toma el ancho del nombre automáticamente */
+        width: 100%;
         margin-bottom: 2px;
     }
 
     .firma-img { 
         position: absolute;
-        bottom: -25px; /* Pegado a la línea */
+        bottom: -25px;
         left: -45px;
-        max-height: 500px; /* 🔥 Firma mucho más grande */
+        max-height: 500px;
         max-width: 250px; 
         object-fit: contain; 
         z-index: 2;
@@ -245,13 +256,13 @@
 
     .linea-firma {
         border-bottom: 1.5px solid #000;
-        height: 80px; /* 🔥 Espacio suficiente para la firma grande */
+        height: 80px;
         width: 100%;
     }
 
     .texto-socio {
         position: absolute;
-        right: -40px; /* A la derecha de la línea */
+        right: -40px;
         bottom: -2px;
         font-size: 11px;
         font-weight: bold;
@@ -265,7 +276,7 @@
         color: #000;
         margin: 0;
         padding-top: 2px;
-        white-space: nowrap; /* El nombre en una sola línea para que la línea no se estire de más */
+        white-space: nowrap;
     }
 
     .datos-firma-resto { 
@@ -298,9 +309,7 @@
 
     .bottom-bar { position: absolute; bottom: 0; left: 0; width: 100%; height: 16px; background-color: var(--rosa-fuerte); z-index: 999; }
 
-    /* =========================================================
-       🔥 CONFIGURACIÓN DE IMPRESIÓN 🔥
-       ========================================================= */
+    /* CONFIGURACIÓN DE IMPRESIÓN */
     @media print {
         @page { size: letter; margin: 0; }
         html, body { margin: 0; padding: 0; background: #fff; }
@@ -361,7 +370,6 @@
         .cobro-tabla-wrapper th { padding: 4px 3px !important; line-height: 1.1 !important; }
         .cobro-tabla-wrapper td { height: auto !important; padding: 3px 4px !important; line-height: 1.15 !important; }
 
-        /* 🔥 AJUSTES DE FIRMA EN IMPRESIÓN 🔥 */
         .seccion-firmas { margin-top: 15px !important; margin-bottom: 10px !important; }
         .firma-wrapper { width: 100% !important; }
         .firma-img { max-height: 100px !important; }
@@ -403,7 +411,13 @@
             {% for c in cartas %}
                 <div class="list-item {% if carta.id == c.id %}active{% endif %}" onclick="window.location.href='{% url 'imprimir_carta' c.id %}'">
                     <div class="client-info">
-                        <div class="client-name">{{ c.numero_carta }}</div>
+                        <div class="client-name">
+                            {% if c.correspondencia %}
+                                {{ c.correspondencia.unidad_cites }} {{ c.correspondencia.correlativo_completo }}
+                            {% else %}
+                                {{ c.numero_carta }}
+                            {% endif %}
+                        </div>
                         <div class="client-nit">{{ c.cliente.razon_social }}</div>
                     </div>
                     <div style="text-align: right; flex-shrink: 0;">
@@ -460,18 +474,18 @@
 
                             <!-- DATOS A LA IZQUIERDA -->
                             <div class="datos-destinatario">
-                                <p>Santa Cruz de la Sierra, {{ carta.fecha_emision|date:"d \d\e F \d\e Y" }}</p>
-                                <p>Ref. CARTA DE COBRO N° {{ carta.numero_carta }}</p>
+                                <p>{{ fecha_formateada|default:"Santa Cruz de la Sierra" }}</p>
+                                <p class="correlativo-carta">{{ correlativo_carta|default:carta.numero_carta }}</p>
 
                                 <div class="texto-destinatario" style="margin-top: 15px;">
-                                    <p>Señor (es)</p>
+                                    <p><strong>Señor (es)</strong></p>
                                     <p><strong>{{ cliente.razon_social }}</strong></p>
-                                    <p>NIT: {{ cliente.nit|default:"No registrado" }}</p>
-                                    <p>Presente.-</p>
+                                    <p><strong>NIT: {{ cliente.nit|default:"No registrado" }}</strong></p>
+                                    <p><strong style="text-decoration: underline;">Presente.-</strong></p>
                                 </div>
                             </div>
 
-                            <!-- 🔥 QR A LA DERECHA 🔥 -->
+                            <!-- QR A LA DERECHA -->
                             <div class="qr-superior">
                                 {% if config_empresa.qr_cobro %}
                                     <p>PAGO CON QR</p>
@@ -486,6 +500,7 @@
 
                         </div>
 
+                        <!-- REFERENCIA SUBRAYADA A LA DERECHA -->
                         <div class="texto-derecha">
                             <p>Ref.- Solicitud de Gastos en Gestión de Trámites</p>
                         </div>
@@ -530,7 +545,7 @@
                         </table>
 
                         <p class="texto-parrafo" style="margin-bottom: 15px;">
-                            <strong>Nota:</strong> Los gastos en gestión de trámites podrán ser pagados en efectivo, depósito, transferencia bancaria, QR y/o cheque a nombre de {{ config_empresa.nombre }}, a la siguiente cuenta:
+                            <strong>Nota:</strong> Los gastos en gestión de trámites podrán ser pagados en efectivo, depósito, transferencia bancaria, QR y/o cheque a nombre de {{ config_empresa.nombre|title }}, a la siguiente cuenta:
                         </p>
 
                         <!-- TABLA DE DATOS BANCARIOS -->
@@ -552,7 +567,7 @@
                                             <td>Banco Unión S.A.</td>
                                             <td>MN</td>
                                             <td>Cta. Cte.</td>
-                                            <td>{{ config_empresa.nombre }}</td>
+                                            <td>{{ config_empresa.nombre|title }}</td>
                                             <td>10000028336114</td>
                                         </tr>
                                     </tbody>
@@ -590,7 +605,7 @@
                             <!-- Resto de datos debajo del nombre -->
                             <div class="datos-firma-resto">
                                 <p class="cargo-rep">{{ config_empresa.rep_cargo|default:"GERENTE GENERAL" }}</p>
-                                <p class="empresa-rep">{{ config_empresa.nombre|default:"Business Advisors Bravo Torrez & Asociados S.R.L." }}</p>
+                                <p class="empresa-rep">{{ config_empresa.nombre|title|default:"Business Advisors Bravo Torrez & Asociados S.R.L." }}</p>
                             </div>
 
                             <!-- Texto Cc -->
@@ -638,7 +653,7 @@
     </div>
 </div>
 
-<!-- 🔥 SCRIPT PARA CONVERTIR EL MONTO A LETRAS (EN MINÚSCULAS) 🔥 -->
+<!-- SCRIPT PARA CONVERTIR EL MONTO A LETRAS (EN MINÚSCULAS) -->
 {% if carta %}
 <script>
     function numeroALetras(num) {

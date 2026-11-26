@@ -5,16 +5,21 @@ from django.db import transaction
 from django.db.models import Q, Sum
 from decimal import Decimal, InvalidOperation
 from .models import ReciboCajaChica, SolicitudCajaChica, ConceptoGasto, ConfiguracionEmpresa, ReembolsoEmpleado, CartaCobro
+from correspondencia.models import ControlCorrespondencia
 from clientes.models import Cliente
 from django.contrib.auth.models import User
 import datetime
 
-# 🔥 FUNCIÓN PARA LIMPIAR MONTOS Y EVITAR ERRORES DE COMA/PUNTO 🔥
+MESES_ES = {
+    1: "enero", 2: "febrero", 3: "marzo", 4: "abril",
+    5: "mayo", 6: "junio", 7: "julio", 8: "agosto",
+    9: "septiembre", 10: "octubre", 11: "noviembre", 12: "diciembre"
+}
+
 def clean_decimal(value):
     if not value:
         return Decimal('0.00')
     val_str = str(value).strip()
-    # Si tiene coma, asumimos que es el separador decimal y quitamos los puntos de miles
     if ',' in val_str:
         val_str = val_str.replace('.', '').replace(',', '.')
     try:
@@ -73,7 +78,6 @@ def caja_chica_dashboard(request):
                 recibo.concepto_gasto_id = request.POST.get('concepto_gasto_id') or None
                 recibo.tipo_retencion = request.POST.get('tipo_retencion')
                 
-                # 🔥 USO DE CLEAN_DECIMAL PARA EVITAR EL ERROR DE COMA 🔥
                 bruto = clean_decimal(request.POST.get('imp_total', 0))
                 ret_iva = clean_decimal(request.POST.get('ret_iva', 0))
                 ret_iue = clean_decimal(request.POST.get('ret_iue', 0))
@@ -108,15 +112,11 @@ def caja_chica_dashboard(request):
         elif form_type == 'guardar_solicitud':
             solicitante_nombre = request.POST.get('solicitante_nombre', '').strip()
             with transaction.atomic():
-                
-                # 🔥 CORRECCIÓN AQUÍ: Buscamos al usuario, pero NO lo creamos si no existe 🔥
                 usuario_obj = None
                 if solicitante_nombre:
-                    # Busca al usuario ignorando mayúsculas/minúsculas
                     usuario_obj = User.objects.filter(username__iexact=solicitante_nombre).first()
                 
                 if not usuario_obj:
-                    # Si no existe o está vacío, se asigna al usuario logueado actualmente
                     usuario_obj = request.user
 
                 if solicitud_editar:
@@ -147,10 +147,7 @@ def caja_chica_dashboard(request):
                 sol.area = request.POST.get('area')
                 sol.proveedor = request.POST.get('proveedor')
                 sol.motivo_gasto = request.POST.get('motivo_gasto')
-                
-                # 🔥 USO DE CLEAN_DECIMAL PARA EL MONTO DE LA SOLICITUD 🔥
                 sol.importe_solicitado = float(clean_decimal(request.POST.get('importe_solicitado', 0)))
-                
                 sol.save()
                 
             messages.success(request, f"Solicitud {sol.numero_solicitud} guardada correctamente.")
@@ -197,8 +194,6 @@ def imprimir_solicitud_pdf(request, sol_id):
 @login_required
 def configuracion_empresa(request):
     config, created = ConfiguracionEmpresa.objects.get_or_create(id=1)
-    
-    # Calcular los días para el vencimiento del QR
     dias_para_vencer = None
     if config.qr_vencimiento:
         dias_para_vencer = (config.qr_vencimiento - datetime.date.today()).days
@@ -207,19 +202,15 @@ def configuracion_empresa(request):
         config.nombre = request.POST.get('nombre')
         config.nit = request.POST.get('nit')
         config.direccion = request.POST.get('direccion')
-        
-        # Datos del Representante Legal
         config.rep_nombre = request.POST.get('rep_nombre')
         config.rep_cargo = request.POST.get('rep_cargo')
         
-        # Fecha de vencimiento del QR
         fecha_venc = request.POST.get('qr_vencimiento')
         if fecha_venc:
             config.qr_vencimiento = datetime.datetime.strptime(fecha_venc, '%Y-%m-%d').date()
         else:
             config.qr_vencimiento = None
 
-        # Guardar imágenes si se subieron archivos nuevos
         if 'logo' in request.FILES: config.logo = request.FILES['logo']
         if 'logo_marca_agua' in request.FILES: config.logo_marca_agua = request.FILES['logo_marca_agua']
         if 'qr_cobro' in request.FILES: config.qr_cobro = request.FILES['qr_cobro']
@@ -227,7 +218,6 @@ def configuracion_empresa(request):
 
         config.save()
         
-        # Recalcular días tras guardar
         if config.qr_vencimiento:
             dias_para_vencer = (config.qr_vencimiento - datetime.date.today()).days
 
@@ -328,7 +318,7 @@ def control_gastos(request):
     total_pend_cobro = recibos.filter(asumido_por_cliente=True, cobrado_al_cliente=False, estado='activo').aggregate(Sum('total_pagado'))['total_pagado__sum'] or 0
 
     reembolsos = ReembolsoEmpleado.objects.all().order_by('-id')
-    cartas = CartaCobro.objects.all().order_by('-id')
+    cartas = CartaCobro.objects.select_related('cliente', 'correspondencia').all().order_by('-id')
     total_reembolsos_global = sum(r.total_reembolsado for r in reembolsos)
     total_cartas_global = sum(c.total_cobrar for c in cartas)
     
@@ -341,8 +331,9 @@ def control_gastos(request):
             'pagado': r.pagado
         })
     for c in cartas:
+        nro_visible = f"{c.correspondencia.unidad_cites} {c.correspondencia.correlativo_completo}" if c.correspondencia else c.numero_carta
         documentos.append({
-            'tipo': 'carta', 'id': c.id, 'numero': c.numero_carta, 
+            'tipo': 'carta', 'id': c.id, 'numero': nro_visible, 
             'detalle': c.cliente.razon_social, 'monto': c.total_cobrar, 
             'url': f'/caja-chica/imprimir-carta/{c.id}/',
             'pagado': c.cobrado
@@ -392,22 +383,38 @@ def control_gastos(request):
                     )
                     
                     if recibos_cobrar.exists():
-                        total = sum(r.total_pagado for r in recibos_cobrar)
+                        recibos_lista = list(recibos_cobrar)
+                        total = sum(r.total_pagado for r in recibos_lista)
                         ultimo = CartaCobro.objects.order_by('-id').first()
-                        max_seq = int(ultimo.numero_carta.split('-')[1]) if ultimo else 0
+                        max_seq = int(ultimo.numero_carta.split('-')[1]) if ultimo and ultimo.numero_carta else 0
                         nuevo_num = f"CC-{str(max_seq + 1).zfill(4)}"
                         
+                        detalle_recibos = ", ".join(r.numero for r in recibos_lista if r.numero)
+                        objeto_texto = f"Cobro de Gastos de Caja Chica ({detalle_recibos})" if detalle_recibos else "Cobro de Gastos de Caja Chica"
+
+                        nueva_corresp = ControlCorrespondencia.objects.create(
+                            tipo_carta='COBRO',
+                            fecha=datetime.date.today(),
+                            destino=cliente.razon_social,
+                            nit=cliente.nit,
+                            monto=total,
+                            objeto=objeto_texto[:300]
+                        )
+                        
                         nueva_carta = CartaCobro.objects.create(
-                            numero_carta=nuevo_num, cliente=cliente,
-                            total_cobrar=total, creado_por=request.user,
+                            numero_carta=nuevo_num, 
+                            cliente=cliente,
+                            total_cobrar=total, 
+                            creado_por=request.user,
+                            correspondencia=nueva_corresp,
                             cobrado=False
                         )
                         
-                        for r in recibos_cobrar:
+                        for r in recibos_lista:
                             r.carta_cobro = nueva_carta
                             r.save()
                             
-                        messages.success(request, f"Carta {nuevo_num} emitida. Confirma el cobro cuando recibas el dinero.")
+                        messages.success(request, f"Carta emitida con correlativo {nueva_corresp.unidad_cites} {nueva_corresp.correlativo_completo}.")
                         return redirect('imprimir_carta', carta_id=nueva_carta.id)
             return redirect('control_gastos')
 
@@ -493,6 +500,8 @@ def revertir_reembolso(request, reembolso_id):
 def revertir_carta(request, carta_id):
     carta = get_object_or_404(CartaCobro, id=carta_id)
     with transaction.atomic():
+        if carta.correspondencia:
+            carta.correspondencia.delete()
         ReciboCajaChica.objects.filter(carta_cobro=carta).update(
             cobrado_al_cliente=False, fecha_cobro=None, carta_cobro=None
         )
@@ -625,10 +634,7 @@ def rendicion_fondos(request):
         if solicitud_sel:
             solicitud_sel.rendido_de = request.POST.get('rendido_de')
             solicitud_sel.rendido_a = request.POST.get('rendido_a')
-            
-            # 🔥 USO DE CLEAN_DECIMAL PARA PRÉSTAMO DE TERCERO 🔥
             solicitud_sel.prestamo_tercero = clean_decimal(request.POST.get('prestamo_tercero', '0'))
-            
             solicitud_sel.save()
             messages.success(request, "Datos de la rendición actualizados.")
         return redirect(f'/caja-chica/rendicion/?id_sol={sol_id}')
@@ -724,21 +730,33 @@ def revertir_rendicion(request, sol_id):
 
 @login_required
 def cartas_cobro_dashboard(request, carta_id=None):
-    cartas = CartaCobro.objects.all().order_by('-id')
+    cartas = CartaCobro.objects.select_related('cliente', 'correspondencia').all().order_by('-id')
     carta_sel = None
     recibos = []
     cliente = None
-    
+    fecha_formateada = ""
+    correlativo_carta = ""
+
     if carta_id:
         carta_sel = get_object_or_404(CartaCobro, id=carta_id)
         recibos = ReciboCajaChica.objects.filter(carta_cobro=carta_sel).order_by('fecha', 'id')
         cliente = carta_sel.cliente
+        
+        f = carta_sel.correspondencia.fecha if carta_sel.correspondencia else carta_sel.fecha_emision
+        fecha_formateada = f"Santa Cruz de la Sierra, {f.day} de {MESES_ES[f.month]} del {f.year}"
+
+        if carta_sel.correspondencia:
+            correlativo_carta = f"{carta_sel.correspondencia.unidad_cites} {carta_sel.correspondencia.correlativo_completo}"
+        else:
+            correlativo_carta = carta_sel.numero_carta or ""
 
     return render(request, 'caja_chica/carta_cobro.html', {
         'cartas': cartas,
         'carta': carta_sel,
         'recibos': recibos,
         'cliente': cliente,
+        'fecha_formateada': fecha_formateada,
+        'correlativo_carta': correlativo_carta,
         'config_empresa': ConfiguracionEmpresa.objects.get_or_create(id=1)[0]
     })
 

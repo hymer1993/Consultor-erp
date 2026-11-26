@@ -10,14 +10,14 @@ class ConfiguracionEmpresa(models.Model):
     # Logo para el encabezado de los documentos
     logo = models.ImageField(upload_to='logos_empresa/', blank=True, null=True, verbose_name="Logo Encabezado")
     
-    # NUEVO: Logo para la marca de agua
+    # Logo para la marca de agua
     logo_marca_agua = models.ImageField(upload_to='logos_empresa/', blank=True, null=True, verbose_name="Logo Marca de Agua")
     
-    # NUEVO: QR de Cobro y su fecha de vencimiento
+    # QR de Cobro y su fecha de vencimiento
     qr_cobro = models.ImageField(upload_to='qr_pagos/', blank=True, null=True, verbose_name="Código QR de Cobro")
     qr_vencimiento = models.DateField(blank=True, null=True, verbose_name="Fecha de Vencimiento del QR")
     
-    # NUEVO: Datos del Representante Legal
+    # Datos del Representante Legal
     rep_nombre = models.CharField(max_length=150, blank=True, null=True, verbose_name="Nombre del Representante Legal")
     rep_cargo = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cargo del Representante Legal")
     rep_firma = models.ImageField(upload_to='firmas/', blank=True, null=True, verbose_name="Firma del Representante Legal")
@@ -93,6 +93,14 @@ class CartaCobro(models.Model):
     fecha_emision = models.DateField(auto_now_add=True)
     total_cobrar = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     creado_por = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
+    
+    correspondencia = models.OneToOneField(
+        'correspondencia.ControlCorrespondencia',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='carta_cobro_caja_chica'
+    )
     
     cobrado = models.BooleanField(default=False, verbose_name="¿Dinero Cobrado?")
     fecha_pago = models.DateField(null=True, blank=True, verbose_name="Fecha Real de Cobro")
